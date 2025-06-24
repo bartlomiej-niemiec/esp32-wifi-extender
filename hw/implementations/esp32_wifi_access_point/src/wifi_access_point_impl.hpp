@@ -16,8 +16,10 @@ class WifiAccessPointImpl:
 {
 public:
     WifiAccessPointImpl():
-        m_ssid(),
-        m_passsword(){};
+        m_ssid{},
+        m_ssidlen(0),
+        m_password{},
+        m_passwordlen(0){};
 
     virtual void Init(const std::string_view &ssid, const std::string_view &password);
 
@@ -25,8 +27,13 @@ public:
 
 private:
 
-    std::string_view m_ssid;
-    std::string_view m_passsword;
+    static const size_t MAX_SSID_LEN = 32;
+    static const size_t MAX_PASSWORD_LEN = 64;
+
+    uint8_t m_ssid[MAX_SSID_LEN];
+    uint8_t m_ssidlen;
+    uint8_t m_password[MAX_PASSWORD_LEN];
+    uint8_t m_passwordlen;
 
 };
 

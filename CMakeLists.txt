@@ -8,11 +8,12 @@ if(${TARGET_PLATFORM} STREQUAL "esp32")
 
     if (${PRODUCT} STREQUAL "client")
         set(EXTRA_COMPONENT_DIRS
-            ${CMAKE_SOURCE_DIR}/core/client
-            ${CMAKE_SOURCE_DIR}/hw/wifi_access_point
-            ${CMAKE_SOURCE_DIR}/hw/implementations/esp32_wifi_access_point
-            ${CMAKE_SOURCE_DIR}/hw/nvs
-            ${CMAKE_SOURCE_DIR}/hw/implementations/esp32_nvs_flash
+            ${CMAKE_SOURCE_DIR}/app
+            ${CMAKE_SOURCE_DIR}/libs
+            ${CMAKE_SOURCE_DIR}/hw/wifi_extender/wifi_extender_if
+            ${CMAKE_SOURCE_DIR}/hw/wifi_extender/platform/esp32_wifi_extender
+            ${CMAKE_SOURCE_DIR}/hw/nvs/nvs_interface
+            ${CMAKE_SOURCE_DIR}/hw/nvs/platform/esp32_nvs_flash
             ${CMAKE_SOURCE_DIR}/os/os_interface
             ${CMAKE_SOURCE_DIR}/os/implementations/freertos_espidf
     )

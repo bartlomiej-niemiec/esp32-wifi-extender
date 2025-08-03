@@ -1,4 +1,4 @@
-#include "os_thread.hpp"
+#include "thread.hpp"
 
 namespace Os
 {

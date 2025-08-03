@@ -1,9 +1,6 @@
 #ifndef HW_NVS_HPP
 #define HW_NVS_HPP
 
-#include <stdint.h>
-#include <string>
-
 namespace Hw
 {
 

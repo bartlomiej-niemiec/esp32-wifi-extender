@@ -30,8 +30,6 @@ public:
     bool Startup(const Hw::WifiExtender::AccessPointConfig &ap_config,
                 const Hw::WifiExtender::StaConfig &sta_config);
 
-    void RegisterListener();
-
     bool Shutdown();
 
     bool UpdateConfig(const Hw::WifiExtender::AccessPointConfig &ap_config,

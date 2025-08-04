@@ -20,9 +20,9 @@ bool WifiExtenderImpl::Startup(const Hw::WifiExtender::AccessPointConfig &ap_con
     return m_WifiManager.Startup(ap_config, sta_config);
 }
 
-void WifiExtenderImpl::RegisterListener()
+bool WifiExtenderImpl::RegisterListener(Hw::WifiExtender::EventListener * pEventListener)
 {
-
+    return true;
 }
 
 bool WifiExtenderImpl::Shutdown()

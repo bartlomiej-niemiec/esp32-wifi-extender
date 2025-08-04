@@ -21,15 +21,22 @@ class WifiAp{
 
         bool Init();
 
-        bool Start(const Hw::WifiExtender::AccessPointConfig &ap_config);
+        bool SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config);
 
         bool EnableNat();
+
+        bool DisableNat();
 
         void SetUpDnsOnDhcpServer(esp_netif_dns_info_t  dnsInfo);
 
         enum class State {
             NOT_INITIALIZED,
-            INITIALIZED
+            INITIALIZED,
+            CONFIGURED,
+            STARTED,
+            CLIENTS_CONNECTED,
+            STOPPED,
+            ERROR
         };
 
         void SetState(WifiAp::State state);

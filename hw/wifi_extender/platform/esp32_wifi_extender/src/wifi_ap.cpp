@@ -24,7 +24,8 @@ namespace WifiExtender
 {
 
 WifiAp::WifiAp():
-    m_ap_netif(nullptr)
+    m_ap_netif(nullptr),
+    m_State(WifiAp::State::NOT_INITIALIZED)
 {
 };
 
@@ -36,7 +37,7 @@ bool WifiAp::Init()
 }
 
 
-bool WifiAp::Start(const Hw::WifiExtender::AccessPointConfig &ap_config)
+bool WifiAp::SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config)
 {
     const uint8_t ssid_len = ap_config.ssid.length();
 
@@ -59,6 +60,11 @@ bool WifiAp::Start(const Hw::WifiExtender::AccessPointConfig &ap_config)
 bool WifiAp::EnableNat()
 {
     return esp_netif_napt_enable(m_ap_netif) == ESP_OK ? true : false;
+}
+
+bool WifiAp::DisableNat()
+{
+    return esp_netif_napt_disable(m_ap_netif) == ESP_OK ? true : false;
 }
 
 void WifiAp::SetUpDnsOnDhcpServer(esp_netif_dns_info_t  dnsInfo)

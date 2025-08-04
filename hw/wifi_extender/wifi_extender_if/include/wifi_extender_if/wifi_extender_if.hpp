@@ -28,7 +28,6 @@ public:
 
     virtual bool UpdateConfig(const AccessPointConfig &ap_config,
                               const StaConfig &sta_config) = 0;
-    
 
 };
  

@@ -21,15 +21,19 @@ class WifiSta{
 
         bool Init();
 
-        bool Start(const Hw::WifiExtender::StaConfig &sta_config);
+        bool SetConfig(const Hw::WifiExtender::StaConfig &sta_config);
 
         esp_netif_dns_info_t GetDnsInfo();
 
         enum class State {
             NOT_INITIALIZED,
             INITIALIZED,
+            CONFIGURED,
+            CONNECTING,
+            CONNECTED,
             DISCONNECTED,
-            CONNECTED
+            STOPPED,
+            ERROR
         };
 
         void SetState(WifiSta::State state);

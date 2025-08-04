@@ -15,10 +15,10 @@ namespace WifiExtender
 
 
 WifiSta::WifiSta():
-    m_sta_netif(nullptr)
+    m_sta_netif(nullptr),
+    m_State(WifiSta::State::NOT_INITIALIZED)
 {
 };
-
 
 bool WifiSta::Init()
 {
@@ -27,7 +27,7 @@ bool WifiSta::Init()
     return true;
 }
 
-bool WifiSta::Start(const Hw::WifiExtender::StaConfig &sta_config)
+bool WifiSta::SetConfig(const Hw::WifiExtender::StaConfig &sta_config)
 {
     wifi_config_t sta_cfg = {};
 
@@ -35,6 +35,7 @@ bool WifiSta::Start(const Hw::WifiExtender::StaConfig &sta_config)
     memcpy(sta_cfg.sta.ssid, sta_config.ssid.data(), sta_config.ssid.length());
 
     esp_err_t result = esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
+    esp_netif_set_default_netif(m_sta_netif);
     assert(ESP_OK == result);
     return true;
 }

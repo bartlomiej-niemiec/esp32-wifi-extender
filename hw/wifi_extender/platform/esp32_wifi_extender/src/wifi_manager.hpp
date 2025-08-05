@@ -79,7 +79,7 @@ class WifiManager:
             void UpdateWifiManagerState();
             static void TimerCallback(void *arg);
             static constexpr int MAX_LISTENERS = 1;
-            static constexpr uint64_t TIMER_EXPIRED_TIME_S = 60000000; //60 s
+            static constexpr uint64_t TIMER_EXPIRED_TIME_US = 10000000; //10 s
             WifiAp m_WifiAp;
             WifiSta m_WifiSta;
             const std::array<WifiEventCallback *, MAX_LISTENERS> m_WifiEventListeners;

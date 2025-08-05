@@ -26,7 +26,7 @@ extern "C" void app_main(void)
 
     const StaConfig staConfig(
         "TP-Link_777D",
-        "58516386"
+        "dsadasdasda"
     );
 
     Nvs::Init();

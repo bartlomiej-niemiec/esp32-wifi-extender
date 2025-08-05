@@ -141,12 +141,20 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
                 break;
             case WIFI_EVENT_STA_CONNECTED:
                 pWifiManagerContext->m_WifiSta.SetState(WifiSta::State::CONNECTED);
-                esp_timer_stop(pWifiManagerContext->m_StaConnectionTimer);
+                ESP_ERROR_CHECK(esp_timer_stop(pWifiManagerContext->m_StaConnectionTimer));
                 break;
             case WIFI_EVENT_STA_START:
                 pWifiManagerContext->m_WifiSta.SetState(WifiSta::State::CONNECTING);
-                esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_S);
-                esp_wifi_connect();
+                if (esp_wifi_connect() == ESP_ERR_WIFI_SSID)
+                {
+                    pWifiManagerContext->m_WifiManagerState = WifiExtenderState::STA_CANNOT_CONNECT;
+                }
+                else
+                {
+                    ESP_LOGI("WifiExtender", "Starting timer..");
+                    ESP_ERROR_CHECK(esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_US));
+                    esp_wifi_connect();
+                }
                 break;
             case WIFI_EVENT_STA_DISCONNECTED:
                 if (pWifiManagerContext->m_PendingNewConfiguration)
@@ -158,7 +166,7 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
                     if (pWifiManagerContext->m_WifiSta.GetState() == WifiSta::State::CONNECTED)
                     {
                         pWifiManagerContext->m_WifiSta.SetState(WifiSta::State::DISCONNECTED);
-                        esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_S);
+                        ESP_ERROR_CHECK(esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_US));
                         esp_wifi_connect();
                     }
                 }
@@ -228,8 +236,11 @@ void WifiManager::WifiManagerContext::Init()
 
 void WifiManager::WifiManagerContext::TimerCallback(void *arg)
 {
+    ESP_LOGI("WifiExtender", "Timer expired..");
     WifiManagerContext* pWifiManagerContext = reinterpret_cast<WifiManagerContext*>(arg);
     pWifiManagerContext->m_WifiManagerState = WifiExtenderState::STA_CANNOT_CONNECT;
+    esp_wifi_connect();
+    ESP_ERROR_CHECK(esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_US));
 }
 
 void WifiManager::WifiManagerContext::UpdateWifiManagerState()
@@ -239,7 +250,7 @@ void WifiManager::WifiManagerContext::UpdateWifiManagerState()
     WifiSta::State wifiStaState = m_WifiSta.GetState();
 
     if ( (wifiStaState == WifiSta::State::CONNECTING) &&
-        (wifiApState == WifiAp::State::STARTED) )
+        (wifiApState == WifiAp::State::STARTED) && (m_WifiManagerState != WifiExtenderState::STA_CANNOT_CONNECT))
     {
         m_WifiManagerState = WifiExtenderState::IN_PROGRESS;
         return;

@@ -14,6 +14,8 @@
 #include "esp_netif_net_stack.h"
 #include "esp_netif.h"
 
+#include "esp_log.h"
+
 namespace Hw
 {
 
@@ -59,7 +61,12 @@ bool WifiAp::SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config)
 
 bool WifiAp::EnableNat()
 {
-    return esp_netif_napt_enable(m_ap_netif) == ESP_OK ? true : false;
+    if (esp_netif_napt_enable(m_ap_netif) != ESP_OK)
+    {
+        ESP_LOGE("WIFI_AP", "NAPT not enabled on the netif: %p", m_ap_netif);
+        return false;
+    }
+    return true;
 }
 
 bool WifiAp::DisableNat()

@@ -7,7 +7,7 @@ if(ESP_PLATFORM)
              "./src/wifi_extender_factory_impl.cpp"
              "./src/wifi_extender_impl.cpp"
              "./src/wifi_manager.cpp"
-        PRIV_REQUIRES esp_wifi "wifi_extender_if" "libs" esp_netif
+        PRIV_REQUIRES esp_wifi "wifi_extender_if" "libs" esp_netif esp_timer
     )
 else()
     # TODO

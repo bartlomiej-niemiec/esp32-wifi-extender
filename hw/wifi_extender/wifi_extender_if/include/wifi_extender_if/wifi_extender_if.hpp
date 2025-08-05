@@ -24,6 +24,8 @@ public:
 
     virtual bool RegisterListener(EventListener * pEventListener) = 0;
 
+    virtual WifiExtenderState GetState() = 0;
+
     virtual bool Shutdown() = 0;
 
     virtual bool UpdateConfig(const AccessPointConfig &ap_config,

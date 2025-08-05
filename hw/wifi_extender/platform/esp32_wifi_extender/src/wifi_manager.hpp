@@ -7,6 +7,7 @@
 
 #include "wifi_ap.hpp"
 #include "wifi_sta.hpp"
+#include "esp_timer.h"
 
 #include <array>
 
@@ -24,8 +25,10 @@ namespace Platform
 namespace WifiExtender
 {
 
+using namespace Hw::WifiExtender;
+
 class WifiManager:
-    public Hw::WifiExtender::WifiExtenderIf
+    public WifiExtenderIf
 {
     public:
 
@@ -43,17 +46,17 @@ class WifiManager:
 
         bool Init();
 
-        bool Startup(const Hw::WifiExtender::AccessPointConfig &ap_config,
-                     const Hw::WifiExtender::StaConfig &sta_config);
+        bool Startup(const AccessPointConfig &ap_config,
+                     const StaConfig &sta_config);
 
-        bool RegisterListener(Hw::WifiExtender::EventListener * pEventListener);
+        bool RegisterListener(EventListener * pEventListener);
 
         bool Shutdown();
 
-        bool UpdateConfig(const Hw::WifiExtender::AccessPointConfig &ap_config,
-                        const Hw::WifiExtender::StaConfig &sta_config);
+        bool UpdateConfig(const AccessPointConfig &ap_config,
+                        const StaConfig &sta_config);
 
-        virtual bool IsInternarAvailable();    
+        WifiExtenderState GetState();
 
     private:
 
@@ -65,18 +68,25 @@ class WifiManager:
                 m_WifiAp(),
                 m_WifiSta(),
                 m_WifiEventListeners(),
-                m_WifiManagerState(),
-                m_PendingNewConfiguration()
-            {};
-
+                m_WifiManagerState(WifiExtenderState::UNINTIALIZED),
+                m_PendingNewConfiguration(),
+                m_StaConnectionTimer(),
+                m_timerArgs()
+            {
+            };
+            
+            void Init();
             void UpdateWifiManagerState();
-
+            static void TimerCallback(void *arg);
             static constexpr int MAX_LISTENERS = 1;
+            static constexpr uint64_t TIMER_EXPIRED_TIME_S = 60000000; //60 s
             WifiAp m_WifiAp;
             WifiSta m_WifiSta;
-            const std::array<Hw::WifiExtender::WifiEventCallback *, MAX_LISTENERS> m_WifiEventListeners;
-            State m_WifiManagerState;
+            const std::array<WifiEventCallback *, MAX_LISTENERS> m_WifiEventListeners;
+            WifiExtenderState m_WifiManagerState;
             bool m_PendingNewConfiguration;
+            esp_timer_handle_t m_StaConnectionTimer;
+            esp_timer_create_args_t m_timerArgs;
         };
 
         WifiManagerContext m_WifiManagerContext;

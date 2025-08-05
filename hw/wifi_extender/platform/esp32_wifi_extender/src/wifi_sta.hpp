@@ -19,24 +19,29 @@ class WifiSta{
 
         WifiSta();
 
-        bool Init();
-
-        bool SetConfig(const Hw::WifiExtender::StaConfig &sta_config);
-
-        esp_netif_dns_info_t GetDnsInfo();
-
         enum class State {
             NOT_INITIALIZED,
             INITIALIZED,
             CONFIGURED,
             CONNECTING,
             CONNECTED,
+            CONNECTED_AND_GOT_IP,
             DISCONNECTED,
             STOPPED,
             ERROR
         };
 
+        bool Init();
+
+        bool SetConfig(const Hw::WifiExtender::StaConfig &sta_config);
+
+        esp_netif_dns_info_t GetDnsInfo();
+
+        esp_netif_ip_info_t GetIpInfo();
+
         void SetState(WifiSta::State state);
+
+        void SetDefaultNetIf();
 
         WifiSta::State GetState();
 

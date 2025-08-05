@@ -7,20 +7,40 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-// #include "access_point_network_stack/access_point_network_stack_factory.hpp"
-// #include "access_point_network_stack/access_point_network_stack.hpp"
-// #include "access_point_network_stack/access_point_network_stack_types.hpp"
-
+#include "wifi_extender_if/wifi_extender_factory.hpp"
+#include "wifi_extender_if/wifi_extender_if.hpp"
 #include "nvs/nvs.hpp"
+
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
 
 extern "C" void app_main(void)
 {
-    Hw::Nvs::Nvs::Init();
-    // Hw::AccessPointNetworkStack::AccessPointNetworkStack* m_ApNetworkStack = Hw::AccessPointNetworkStack::AccessPointNetworkStackFactory::GetAccessPointNetworkStack();
+    using namespace Hw::Nvs;
+    using namespace Hw::WifiExtender;
 
-    // Hw::AccessPointNetworkStack::DhcpConfig dhcpConfif = {.enabled = true};
-    // Hw::AccessPointNetworkStack::AccessPointConfig apConfig = {.ssid = "ESP32", .password = "dupadupa1"};
+    const AccessPointConfig apConfig(
+        "ESP32",
+        "dupadupa1"
+    );
 
-    // m_ApNetworkStack->Init(dhcpConfif, apConfig);
-    // m_ApNetworkStack->Startup();
+    const StaConfig staConfig(
+        "TP-Link_777D",
+        "58516386"
+    );
+
+    Nvs::Init();
+    WifiExtenderIf* pWifiExtender = WifiExtenderFactory::GetWifiExtenderIf();
+    pWifiExtender->Init();
+    pWifiExtender->Startup(apConfig, staConfig);
+
+    constexpr TickType_t DELAY_5_S = 5000 / portTICK_PERIOD_MS;
+
+    while (true)
+    {
+        vTaskDelay(DELAY_5_S);
+        WifiExtenderState state = pWifiExtender->GetState();
+        ESP_LOGI("Main", "%s",  WifiExtenderHelpers::WifiExtenderStaToString(state).data());
+    }
+
 }

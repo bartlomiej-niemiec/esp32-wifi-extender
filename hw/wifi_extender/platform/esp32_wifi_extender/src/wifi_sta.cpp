@@ -35,7 +35,6 @@ bool WifiSta::SetConfig(const Hw::WifiExtender::StaConfig &sta_config)
     memcpy(sta_cfg.sta.ssid, sta_config.ssid.data(), sta_config.ssid.length());
 
     esp_err_t result = esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
-    esp_netif_set_default_netif(m_sta_netif);
     assert(ESP_OK == result);
     return true;
 }
@@ -52,9 +51,21 @@ void WifiSta::SetState(WifiSta::State state)
     m_State = state;
 }
 
+void WifiSta::SetDefaultNetIf()
+{
+    ESP_ERROR_CHECK(esp_netif_set_default_netif(m_sta_netif));
+}
+
 WifiSta::State WifiSta::GetState()
 {
     return m_State;
+}
+
+esp_netif_ip_info_t WifiSta::GetIpInfo()
+{
+    esp_netif_ip_info_t ip_info;
+    esp_netif_get_ip_info(m_sta_netif, &ip_info);
+    return ip_info;
 }
 
 }

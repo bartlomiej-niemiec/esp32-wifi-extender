@@ -13,8 +13,10 @@ namespace Platform
 namespace WifiExtender
 {
 
+using namespace Hw::WifiExtender;
+
 class WifiExtenderImpl:
-    public Hw::WifiExtender::WifiExtenderIf
+    public WifiExtenderIf
 {
 
 public:
@@ -27,20 +29,22 @@ public:
 
     bool Init();
 
-    bool Startup(const Hw::WifiExtender::AccessPointConfig &ap_config,
-                const Hw::WifiExtender::StaConfig &sta_config);
+    bool Startup(const AccessPointConfig &ap_config,
+                const StaConfig &sta_config);
 
     bool Shutdown();
 
-    bool UpdateConfig(const Hw::WifiExtender::AccessPointConfig &ap_config,
-                    const Hw::WifiExtender::StaConfig &sta_config);
+    bool UpdateConfig(const AccessPointConfig &ap_config,
+                    const StaConfig &sta_config);
 
-    bool RegisterListener(Hw::WifiExtender::EventListener * pEventListener);
+    bool RegisterListener(EventListener * pEventListener);
+
+    WifiExtenderState GetState();
 
 private:
 
-    Hw::WifiExtender::AccessPointConfig m_CurrApConfig;    
-    Hw::WifiExtender::StaConfig m_CurrStaConfig;
+    AccessPointConfig m_CurrApConfig;    
+    StaConfig m_CurrStaConfig;
     WifiManager m_WifiManager;
 
 

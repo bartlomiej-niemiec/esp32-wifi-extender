@@ -47,16 +47,26 @@ bool WifiExtenderImpl::Shutdown()
 bool WifiExtenderImpl::UpdateConfig(const AccessPointConfig &ap_config,
                                     const StaConfig &sta_config)
 {
-    if (m_WifiManager.GetState() > WifiExtenderState::IN_PROGRESS)
+    if (m_WifiManager.GetState() <= WifiExtenderState::IN_PROGRESS)
     {
         return false;
     }
 
-    if ((ap_config != m_CurrApConfig) || (sta_config != m_CurrStaConfig))
+    bool isApNewConfig = ap_config != m_CurrApConfig;
+    bool isStaNewConfig = sta_config != m_CurrStaConfig;
+
+    if (isApNewConfig || isStaNewConfig)
     {
-        return m_WifiManager.UpdateConfig(ap_config, sta_config);
+        AccessPointConfig newApConfig = isApNewConfig ? ap_config : m_CurrApConfig;
+        StaConfig newStaConfig = isStaNewConfig ? sta_config : m_CurrStaConfig;
+
+        m_WifiManager.UpdateConfig(newApConfig, newStaConfig);
+
+        m_CurrApConfig = newApConfig;
+        m_CurrStaConfig = sta_config;
+
     } 
-    return false;
+    return true;
 }
 
 WifiExtenderState WifiExtenderImpl::GetState()

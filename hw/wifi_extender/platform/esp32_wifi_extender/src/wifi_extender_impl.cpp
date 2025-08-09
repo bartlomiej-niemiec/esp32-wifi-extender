@@ -9,11 +9,12 @@ namespace Platform
 namespace WifiExtender
 {
 
-bool WifiExtenderImpl::Init()
+bool WifiExtenderImpl::Init(const WifiExtenderMode & mode)
 {
-    if (m_WifiManager.GetState() == WifiExtenderState::UNINTIALIZED)
+    if ((m_WifiManager.GetState() == WifiExtenderState::UNINTIALIZED) || 
+        ((m_WifiManager.GetState() == WifiExtenderState::STOPEED) && (mode != m_Mode)))
     {
-        return m_WifiManager.Init();
+        return m_WifiManager.Init(mode);
     }
     return false;
 }

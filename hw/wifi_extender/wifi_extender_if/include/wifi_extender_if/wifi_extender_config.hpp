@@ -77,6 +77,11 @@ struct StaConfig {
 
 };
 
+enum class WifiExtenderMode {
+    FACTORY_DEFAULT_MODE,
+    OPERATION
+};
+
 
 enum class WifiExtenderState{
     UNINTIALIZED,

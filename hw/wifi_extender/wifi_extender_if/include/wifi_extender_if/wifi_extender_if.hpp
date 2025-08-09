@@ -17,7 +17,7 @@ public:
 
     ~WifiExtenderIf() = default;
 
-    virtual bool Init() = 0;
+    virtual bool Init(const WifiExtenderMode & mode) = 0;
 
     virtual bool Startup(const AccessPointConfig &ap_config,
                          const StaConfig &sta_config) = 0;

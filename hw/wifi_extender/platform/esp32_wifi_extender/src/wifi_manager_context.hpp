@@ -26,12 +26,13 @@ struct WifiManagerContext
         m_WifiSta(),
         m_WifiManagerState(WifiExtenderState::UNINTIALIZED),
         m_PendingNewConfiguration(),
-        m_StaConnectionTimer(),
-        m_timerArgs()
+        m_StaConnectionTimer(nullptr),
+        m_timerArgs(),
+        m_WifiExtenderMode()
     {
     };
             
-    void Init();
+    void Init(const WifiExtenderMode & mode);
 
     void UpdateWifiManagerState();
 
@@ -57,10 +58,7 @@ struct WifiManagerContext
 
     static void TimerCallback(void *arg);
     static constexpr int MAX_LISTENERS = 1;
-    static constexpr uint64_t TIMER_EXPIRED_TIME_US = 30000000; //10 s
-    static constexpr int ALLOWED_WIFI_EVENTS = (WIFI_EVENT_AP_START | WIFI_EVENT_AP_STOP | WIFI_EVENT_AP_STACONNECTED | WIFI_EVENT_AP_STADISCONNECTED |
-                                                WIFI_EVENT_STA_CONNECTED | WIFI_EVENT_STA_START | WIFI_EVENT_STA_DISCONNECTED);
-    static constexpr int ALLOWED_IP_EVENTS = (IP_EVENT_STA_GOT_IP | IP_EVENT_STA_LOST_IP);
+    static constexpr uint64_t TIMER_EXPIRED_TIME_US = 30000000; //30 s
     int m_ApClientsCounter;
     WifiAp m_WifiAp;
     WifiSta m_WifiSta;
@@ -69,6 +67,7 @@ struct WifiManagerContext
     bool m_PendingNewConfiguration;
     esp_timer_handle_t m_StaConnectionTimer;
     esp_timer_create_args_t m_timerArgs;
+    WifiExtenderMode m_WifiExtenderMode;
 };
 
 }

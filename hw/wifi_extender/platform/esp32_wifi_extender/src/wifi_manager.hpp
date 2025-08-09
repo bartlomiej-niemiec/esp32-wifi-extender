@@ -24,10 +24,12 @@ class WifiManager:
     public:
 
         WifiManager():
-            m_WifiManagerContext()
+            m_WifiManagerContext(),
+            m_IpEventRegistered(false),
+            m_WifiEventRegistered(false)
             {};
 
-        bool Init();
+        bool Init(const WifiExtenderMode & mode);
 
         bool Startup(const AccessPointConfig &ap_config,
                      const StaConfig &sta_config);
@@ -43,11 +45,19 @@ class WifiManager:
 
     private:
 
+        bool InitFactoryMode();
+
+        bool InitOperationMode();
+
         void Deinit();
 
         static void wifi_ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
         WifiManagerContext m_WifiManagerContext;
+
+        bool m_IpEventRegistered;
+
+        bool m_WifiEventRegistered;
 };
 
 

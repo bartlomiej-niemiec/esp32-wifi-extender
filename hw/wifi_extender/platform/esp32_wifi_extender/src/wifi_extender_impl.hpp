@@ -24,10 +24,11 @@ public:
     WifiExtenderImpl():
         m_CurrApConfig(),
         m_CurrStaConfig(),
-        m_WifiManager()
+        m_WifiManager(),
+        m_Mode(WifiExtenderMode::FACTORY_DEFAULT_MODE)
     {};
 
-    bool Init();
+    bool Init(const WifiExtenderMode & mode);
 
     bool Startup(const AccessPointConfig &ap_config,
                 const StaConfig &sta_config);
@@ -46,7 +47,7 @@ private:
     AccessPointConfig m_CurrApConfig;    
     StaConfig m_CurrStaConfig;
     WifiManager m_WifiManager;
-
+    WifiExtenderMode m_Mode;
 
 };
 

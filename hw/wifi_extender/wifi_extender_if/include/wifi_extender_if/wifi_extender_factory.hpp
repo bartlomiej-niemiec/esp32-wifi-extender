@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string>
 
+#include "wifi_extender_scanner_if.hpp"
+
 namespace Hw
 {
 
@@ -16,7 +18,12 @@ class WifiExtenderFactory{
 
 public:
 
-    static WifiExtenderIf* GetWifiExtenderIf();
+    struct WifiExtenderBoundle{
+        WifiExtenderIf *pWifiExtenderIf;
+        WifiExtenderScannerIf* pWifiExtenderScannerIf;
+    };
+
+    static WifiExtenderBoundle GetWifiExtenderBoundle();
 
 };
 

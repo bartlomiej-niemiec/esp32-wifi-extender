@@ -22,21 +22,15 @@ class WifiExtenderImpl:
 public:
 
     WifiExtenderImpl():
-        m_CurrApConfig(),
-        m_CurrStaConfig(),
-        m_WifiManager(),
-        m_Mode(WifiExtenderMode::FACTORY_DEFAULT_MODE)
+        m_CurrentConfig(),
+        m_WifiManager()
     {};
 
-    bool Init(const WifiExtenderMode & mode);
-
-    bool Startup(const AccessPointConfig &ap_config,
-                const StaConfig &sta_config);
+    bool Startup(const WifiExtenderConfig & config);
 
     bool Shutdown();
 
-    bool UpdateConfig(const AccessPointConfig &ap_config,
-                    const StaConfig &sta_config);
+    bool UpdateConfig(const WifiExtenderConfig & config);
 
     bool RegisterListener(EventListener * pEventListener);
 
@@ -44,11 +38,8 @@ public:
 
 private:
 
-    AccessPointConfig m_CurrApConfig;    
-    StaConfig m_CurrStaConfig;
+    WifiExtenderConfig m_CurrentConfig;
     WifiManager m_WifiManager;
-    WifiExtenderMode m_Mode;
-
 };
 
 

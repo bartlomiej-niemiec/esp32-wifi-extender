@@ -9,29 +9,14 @@ namespace Platform
 namespace WifiExtender
 {
 
-bool WifiExtenderImpl::Init(const WifiExtenderMode & mode)
+bool WifiExtenderImpl::Startup(const WifiExtenderConfig & config)
 {
-    if ((m_WifiManager.GetState() == WifiExtenderState::UNINTIALIZED) || 
-        ((m_WifiManager.GetState() == WifiExtenderState::STOPEED) && (mode != m_Mode)))
+    if (m_WifiManager.GetState() == WifiExtenderState::STOPPED)
     {
-        return m_WifiManager.Init(mode);
+        m_WifiManager.Startup(config);
+        m_CurrentConfig = config;
     }
-    return false;
-}
-
-bool WifiExtenderImpl::Startup(const AccessPointConfig &ap_config,
-                               const StaConfig &sta_config)
-{
-    if (m_WifiManager.GetState() == WifiExtenderState::INITIALIZED)
-    {
-        if ( true == m_WifiManager.Startup(ap_config, sta_config) )
-        {
-            m_CurrApConfig = ap_config;
-            m_CurrStaConfig = sta_config;
-            return true;
-        }
-    }
-    return false;
+    return true;
 }
 
 bool WifiExtenderImpl::RegisterListener(EventListener * pEventListener)
@@ -45,26 +30,26 @@ bool WifiExtenderImpl::Shutdown()
     return m_WifiManager.Shutdown();
 }
 
-bool WifiExtenderImpl::UpdateConfig(const AccessPointConfig &ap_config,
-                                    const StaConfig &sta_config)
+bool WifiExtenderImpl::UpdateConfig(const WifiExtenderConfig & config)
 {
-    if (m_WifiManager.GetState() <= WifiExtenderState::IN_PROGRESS)
+    if (m_WifiManager.GetState() <= WifiExtenderState::CONNECTING)
     {
         return false;
     }
 
-    bool isApNewConfig = ap_config != m_CurrApConfig;
-    bool isStaNewConfig = sta_config != m_CurrStaConfig;
+    bool isApNewConfig = config.apConfig != m_CurrentConfig.apConfig;
+    bool isStaNewConfig = config.staConfig != m_CurrentConfig.staConfig;
 
     if (isApNewConfig || isStaNewConfig)
     {
-        AccessPointConfig newApConfig = isApNewConfig ? ap_config : m_CurrApConfig;
-        StaConfig newStaConfig = isStaNewConfig ? sta_config : m_CurrStaConfig;
+        AccessPointConfig newApConfig = isApNewConfig ? config.apConfig : m_CurrentConfig.apConfig;
+        StaConfig newStaConfig = isStaNewConfig ? config.staConfig : m_CurrentConfig.staConfig;
 
-        m_WifiManager.UpdateConfig(newApConfig, newStaConfig);
+        WifiExtenderConfig newConfig(newApConfig, newStaConfig);
 
-        m_CurrApConfig = newApConfig;
-        m_CurrStaConfig = sta_config;
+        m_WifiManager.UpdateConfig(newConfig);
+
+        m_CurrentConfig = newConfig;
 
     } 
     return true;

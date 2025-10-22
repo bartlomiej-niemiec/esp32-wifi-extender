@@ -3,6 +3,7 @@
 #include "assert.h"
 #include <utility>
 #include <string.h>
+#include "esp_log.h"
 
 namespace Hw
 {
@@ -19,6 +20,11 @@ WifiSta::WifiSta():
     m_State(WifiSta::State::NOT_INITIALIZED)
 {
 };
+
+WifiSta::~WifiSta()
+{
+    esp_netif_destroy_default_wifi(m_sta_netif);
+}
 
 bool WifiSta::Init()
 {
@@ -56,7 +62,7 @@ void WifiSta::SetDefaultNetIf()
     ESP_ERROR_CHECK(esp_netif_set_default_netif(m_sta_netif));
 }
 
-WifiSta::State WifiSta::GetState()
+WifiSta::State WifiSta::GetState() const
 {
     return m_State;
 }

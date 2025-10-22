@@ -17,10 +17,7 @@ public:
 
     ~WifiExtenderIf() = default;
 
-    virtual bool Init(const WifiExtenderMode & mode) = 0;
-
-    virtual bool Startup(const AccessPointConfig &ap_config,
-                         const StaConfig &sta_config) = 0;
+    virtual bool Startup(const WifiExtenderConfig & config) = 0;
 
     virtual bool RegisterListener(EventListener * pEventListener) = 0;
 
@@ -28,8 +25,7 @@ public:
 
     virtual bool Shutdown() = 0;
 
-    virtual bool UpdateConfig(const AccessPointConfig &ap_config,
-                              const StaConfig &sta_config) = 0;
+    virtual bool UpdateConfig(const WifiExtenderConfig & config) = 0;
 
 };
  

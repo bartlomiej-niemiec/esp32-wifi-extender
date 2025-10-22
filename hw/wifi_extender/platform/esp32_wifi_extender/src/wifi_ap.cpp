@@ -31,6 +31,11 @@ WifiAp::WifiAp():
 {
 };
 
+WifiAp::~WifiAp()
+{
+    esp_netif_destroy_default_wifi(m_ap_netif);
+}
+
 bool WifiAp::Init()
 {
     m_ap_netif = esp_netif_create_default_wifi_ap();
@@ -59,21 +64,6 @@ bool WifiAp::SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config)
     return true;
 }
 
-bool WifiAp::EnableNat()
-{
-    if (esp_netif_napt_enable(m_ap_netif) != ESP_OK)
-    {
-        ESP_LOGE("WIFI_AP", "NAPT not enabled on the netif: %p", m_ap_netif);
-        return false;
-    }
-    return true;
-}
-
-bool WifiAp::DisableNat()
-{
-    return esp_netif_napt_disable(m_ap_netif) == ESP_OK ? true : false;
-}
-
 void WifiAp::SetUpDnsOnDhcpServer(esp_netif_dns_info_t  dnsInfo)
 {
     uint8_t dhcps_offer_option = DHCPS_OFFER_DNS;
@@ -88,9 +78,24 @@ void WifiAp::SetState(WifiAp::State state)
     m_State = state;
 }
 
-WifiAp::State WifiAp::GetState()
+WifiAp::State WifiAp::GetState() const
 {
     return m_State;
+}
+
+bool WifiAp::EnableNat()
+{
+    if (esp_netif_napt_enable(m_ap_netif) != ESP_OK)
+    {
+        ESP_LOGE("WIFI_STA", "NAPT not enabled on the netif: %p", m_ap_netif);
+        return false;
+    }
+    return true;
+}
+
+bool WifiAp::DisableNat()
+{
+    return esp_netif_napt_disable(m_ap_netif) == ESP_OK ? true : false;
 }
 
 

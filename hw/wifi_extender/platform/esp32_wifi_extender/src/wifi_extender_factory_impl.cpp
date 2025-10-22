@@ -11,15 +11,17 @@ namespace Hw
 namespace WifiExtender
 {
 
-
-WifiExtenderIf* WifiExtenderFactory::GetWifiExtenderIf()
+WifiExtenderFactory::WifiExtenderBoundle WifiExtenderFactory::GetWifiExtenderBoundle()
 {
     static WifiExtenderIf * pWifiExtenderIf = nullptr;
     if (pWifiExtenderIf == nullptr)
     {
         pWifiExtenderIf = new (std::nothrow) Hw::Platform::WifiExtender::WifiExtenderImpl();
     }
-    return pWifiExtenderIf;
+
+    assert(pWifiExtenderIf != nullptr);
+
+    return {.pWifiExtenderIf = pWifiExtenderIf, .pWifiExtenderScannerIf = nullptr};
 }
 
 }

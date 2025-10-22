@@ -19,13 +19,11 @@ class WifiAp{
     
         WifiAp();
 
+        ~WifiAp();
+
         bool Init();
 
         bool SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config);
-
-        bool EnableNat();
-
-        bool DisableNat();
 
         void SetUpDnsOnDhcpServer(esp_netif_dns_info_t  dnsInfo);
 
@@ -41,7 +39,11 @@ class WifiAp{
 
         void SetState(WifiAp::State state);
 
-        WifiAp::State GetState();
+        bool EnableNat();
+
+        bool DisableNat();
+
+        WifiAp::State GetState() const;
 
     private:
 

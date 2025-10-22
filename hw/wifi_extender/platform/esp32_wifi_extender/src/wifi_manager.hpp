@@ -6,6 +6,12 @@
 #include "wifi_extender_if/wifi_extender_if.hpp"
 
 #include "wifi_manager_context.hpp"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+#include <utility>
+#include <variant>
+#include <array>
 
 namespace Hw
 {
@@ -16,48 +22,207 @@ namespace Platform
 namespace WifiExtender
 {
 
-using namespace Hw::WifiExtender;
+class MessageQueue
+{
+    public:
+
+        enum class EventType : uint8_t {
+                StartReq,
+                UpdateConfigReq,
+                StopReq,
+                EspWifiEvent,
+                EspIpEvent,
+                StaTimerReconnect,
+                InternalStop
+        };
+
+        static const std::string_view GetStringOfEventType(EventType event)
+        {
+            switch (event)
+            {
+                case EventType::StartReq: return "StartReq event";
+                case EventType::UpdateConfigReq: return "UpdateConfigReq event";
+                case EventType::StopReq: return "StopReq event";
+                case EventType::EspWifiEvent: return "EspWifiEvent event";
+                case EventType::EspIpEvent: return "EspIpEvent event";
+                case EventType::StaTimerReconnect: return "StaTimerReconnect event";
+                case EventType::InternalStop: return "InternalStop event";
+            }
+
+            return "Unknown event";
+        }
+
+        struct Message {
+            Message(){};
+
+            Message(EventType e, int32_t code):
+                event(e),
+                espEventCode(code)
+            {};
+
+            EventType event;
+            int32_t espEventCode;
+        };
+
+        MessageQueue():
+            m_MessageQueue(),
+            m_QueueStorage(),
+            m_MessageQueueBuffer()
+        {
+            m_MessageQueue = xQueueCreateStatic(MESSAGE_QUEUE_SIZE, sizeof(Message), m_MessageQueueBuffer, &m_QueueStorage);
+            assert(nullptr != m_MessageQueue);
+        }
+
+        ~MessageQueue()
+        {
+            vQueueDelete(m_MessageQueue);
+        }
+
+        bool Add(const Message & msg)
+        {
+            return xQueueSend(m_MessageQueue, &msg, 0) == pdTRUE;
+        }
+
+        bool Receive(Message & msg)
+        {
+            return xQueueReceive(
+            m_MessageQueue,
+            &msg,
+            portMAX_DELAY
+            ) == pdTRUE;
+        }
+
+
+    private:
+
+        QueueHandle_t m_MessageQueue;
+        StaticQueue_t m_QueueStorage;
+
+        static constexpr int MESSAGE_QUEUE_SIZE = 32;
+
+        uint8_t m_MessageQueueBuffer[MESSAGE_QUEUE_SIZE * sizeof(Message)];
+};
 
 class WifiManager:
     public WifiExtenderIf
 {
     public:
 
-        WifiManager():
-            m_WifiManagerContext(),
-            m_IpEventRegistered(false),
-            m_WifiEventRegistered(false)
-            {};
+        WifiManager();
 
-        bool Init(const WifiExtenderMode & mode);
+        ~WifiManager();
 
-        bool Startup(const AccessPointConfig &ap_config,
-                     const StaConfig &sta_config);
+        bool Startup(const WifiExtenderConfig & config);
 
-        bool RegisterListener(EventListener * pEventListener);
+        bool RegisterListener(Hw::WifiExtender::EventListener * pEventListener);
 
         bool Shutdown();
 
-        bool UpdateConfig(const AccessPointConfig &ap_config,
-                        const StaConfig &sta_config);
+        bool UpdateConfig(const WifiExtenderConfig & config);
 
-        WifiExtenderState GetState();
+        Hw::WifiExtender::WifiExtenderState GetState();
 
     private:
 
-        bool InitFactoryMode();
+        WifiManager(const WifiManager&) = delete;
 
-        bool InitOperationMode();
+        WifiManager& operator=(const WifiManager&) = delete;
 
-        void Deinit();
+        WifiManager(WifiManager&&) = delete;
+        
+        WifiManager& operator=(WifiManager&&) = delete;
+
+        void Stop();
+
+        bool Init();
 
         static void wifi_ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
+        static void WifiManagerMain(void *pArg);
+
+        TaskHandle_t m_TaskHandle;
+
+        MessageQueue m_MessageQueue;
+
+        void OnMessage(const MessageQueue::Message & msg);
+
         WifiManagerContext m_WifiManagerContext;
 
-        bool m_IpEventRegistered;
+        WifiExtenderConfig m_PendingConfig;
 
-        bool m_WifiEventRegistered;
+        esp_event_handler_instance_t m_wifiAnyInst;
+
+        esp_event_handler_instance_t m_ipAnyInst;
+
+        EventListener * m_pEventListener;
+
+        bool m_StartUpInProgress;
+
+        struct Snapshot{
+            WifiExtenderState mgrState;
+            WifiAp::State apState;
+            WifiSta::State staState;
+            bool updateConfig;
+            bool startUpInProgress;
+            bool staCfgValid;
+        };
+
+        enum class Effect : uint8_t {
+            None,
+            ApplyConfig,
+            WifiStart,
+            WifiStop,
+            DisableNat,
+            EnableNat,
+            StaConnect,
+            SetUpDns,
+            SetDefaultNetIf,
+            StartStaBackoffTimer,
+            StopStaBackoffTimer,
+            NotifyListener
+        };
+
+        struct Decision{
+            bool newState;
+            static constexpr int MAX_EFFECTS_PER_DECISION = 6;
+            WifiExtenderState next;
+            Effect effects[MAX_EFFECTS_PER_DECISION]{};
+            uint8_t count{0};
+        };
+
+        static inline void push(Decision& d, Effect e) {
+            assert(d.count < Decision::MAX_EFFECTS_PER_DECISION);
+            if (d.count < Decision::MAX_EFFECTS_PER_DECISION) {
+                d.effects[d.count++] = e;
+            }
+        }
+
+        Snapshot makeSnapshot() const;
+
+        Decision reduce(const Snapshot& s, const MessageQueue::Message& msg) const;
+
+        void runEffect(Effect e, const MessageQueue::Message& m);
+
+        void MaybeFinalize(const Snapshot& s);
+
+        static constexpr char m_pTaskName[] = "WifiManagerTask";
+
+        static constexpr int TASK_STACK_SIZE = 3096;
+
+        static constexpr int TASK_PRIO = 10;
+
+        static constexpr uint64_t TIMER_EXPIRED_TIME_US = 30000000; //30 s
+
+        void StartStaBackoffTimer();
+
+        void StopStaBackoffTimer();
+
+        static void RetryConnectToNetwork(void *arg);
+
+        esp_timer_handle_t m_StaConnectionTimer;
+
+        esp_timer_create_args_t m_timerArgs;
+
 };
 
 

@@ -19,6 +19,8 @@ class WifiSta{
 
         WifiSta();
 
+        ~WifiSta();
+
         enum class State {
             NOT_INITIALIZED,
             INITIALIZED,
@@ -43,7 +45,7 @@ class WifiSta{
 
         void SetDefaultNetIf();
 
-        WifiSta::State GetState();
+        WifiSta::State GetState() const;
 
     private:
 

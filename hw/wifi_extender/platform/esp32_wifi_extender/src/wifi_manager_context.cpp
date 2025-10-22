@@ -10,113 +10,47 @@ namespace Platform
 namespace WifiExtender
 {
 
-void WifiManagerContext::Init(const WifiExtenderMode & mode)
+WifiManagerContext::WifiManagerContext():
+        m_ApClientsCounter(),
+        m_WifiAp(),
+        m_WifiSta(),
+        m_WifiManagerState(WifiExtenderState::STOPPED),
+        m_PendingNewConfiguration(),
+        m_StaConfigurationValid(false)
 {
-    m_WifiExtenderMode = mode;
-    if (m_StaConnectionTimer == nullptr)
-    {
-        assert(esp_timer_init() != ESP_ERR_NO_MEM );
-        m_timerArgs.callback = TimerCallback;
-        m_timerArgs.arg = this;
-        m_timerArgs.dispatch_method = ESP_TIMER_TASK;
-        m_timerArgs.name = "STA_CONNECTION_TIMER";
-        m_timerArgs.skip_unhandled_events = true;
+};
 
-        ESP_ERROR_CHECK(esp_timer_create(&m_timerArgs, &m_StaConnectionTimer));
-    }
+WifiManagerContext::~WifiManagerContext()
+{
 }
 
-void WifiManagerContext::TimerCallback(void *arg)
-{
-    ESP_LOGI("WifiExtender", "Timer expired..");
-    WifiManagerContext* pWifiManagerContext = reinterpret_cast<WifiManagerContext*>(arg);
-    pWifiManagerContext->m_WifiManagerState = WifiExtenderState::STA_CANNOT_CONNECT;
-    esp_wifi_connect();
-    ESP_ERROR_CHECK(esp_timer_start_once(pWifiManagerContext->m_StaConnectionTimer, pWifiManagerContext->TIMER_EXPIRED_TIME_US));
+void WifiManagerContext::SetStaConfigurationValid(const bool isStaConfValid){
+    m_StaConfigurationValid = isStaConfValid;
 }
-
-void WifiManagerContext::UpdateWifiManagerState()
-{
-
-    WifiAp::State wifiApState = m_WifiAp.GetState();
-    WifiSta::State wifiStaState = m_WifiSta.GetState();
-
-    if ((m_WifiExtenderMode == WifiExtenderMode::FACTORY_DEFAULT_MODE))
-    {
-        if (wifiApState == WifiAp::State::STARTED || wifiApState == WifiAp::State::CLIENTS_CONNECTED)
-        {
-            m_WifiManagerState = WifiExtenderState::RUNNING;
-            return;
-        }
-        else if ((wifiApState == WifiAp::State::STOPPED))
-        {
-            if (m_WifiManagerState != WifiExtenderState::STOPEED)
-            {
-                m_WifiManagerState = m_PendingNewConfiguration ? WifiExtenderState::STOPEED : WifiExtenderState::IN_PROGRESS;
-                return;
-            }
-        }
-    }
-    else if ((m_WifiExtenderMode == WifiExtenderMode::OPERATION))
-    {   
-        if ( ((wifiApState == WifiAp::State::STARTED) || (wifiApState == WifiAp::State::CLIENTS_CONNECTED)) &&
-        (wifiStaState == WifiSta::State::CONNECTED_AND_GOT_IP))
-        {
-            m_WifiManagerState = WifiExtenderState::RUNNING;
-            return;
-        }
-
-        if (((wifiStaState == WifiSta::State::CONNECTED)) && m_WifiManagerState == WifiExtenderState::STA_CANNOT_CONNECT)
-        {
-            if ((wifiApState == WifiAp::State::STARTED || wifiApState == WifiAp::State::CLIENTS_CONNECTED))
-            {
-                m_WifiManagerState = WifiExtenderState::RUNNING;
-            }
-            else
-            {
-                m_WifiManagerState = WifiExtenderState::IN_PROGRESS;
-            }
-            return;
-        }
-
-        if ( (wifiStaState == WifiSta::State::CONNECTING) &&
-        (wifiApState == WifiAp::State::STARTED) && (m_WifiManagerState != WifiExtenderState::STA_CANNOT_CONNECT))
-        {
-            m_WifiManagerState = WifiExtenderState::IN_PROGRESS;
-            return;
-        }
-
-        if ((wifiStaState == WifiSta::State::STOPPED) &&
-            (wifiApState == WifiAp::State::STOPPED))
-        {
-            m_WifiManagerState = WifiExtenderState::STOPEED;
-            return;
-        }
-    }
-}
-
 
 void WifiManagerContext::OnApStart()
 {
-    m_WifiAp.SetState(WifiAp::State::STARTED);
     ESP_LOGI("WifiAp", "ApStartEvent");
+    m_WifiAp.SetState(WifiAp::State::STARTED);
 }
 
 void WifiManagerContext::OnApStop()
 {
+    ESP_LOGI("WifiAp", "ApStoptEvent");
     m_WifiAp.SetState(WifiAp::State::STOPPED);
     m_ApClientsCounter = 0;
-    ESP_LOGI("WifiAp", "ApStoptEvent");
 }
 
 void WifiManagerContext::OnApStaConnected()
 {
+    ESP_LOGI("WifiSta", "ApStaConnectedEvent");
     m_ApClientsCounter++;
     m_WifiAp.SetState(WifiAp::State::CLIENTS_CONNECTED);
 }
 
 void WifiManagerContext::OnApStaDisconnected()
 {
+    ESP_LOGI("WifiSta", "ApStaDisconnectedEvent");
     m_ApClientsCounter--;
     if (m_ApClientsCounter < 0)
     {
@@ -131,12 +65,13 @@ void WifiManagerContext::OnApStaDisconnected()
 
 void WifiManagerContext::OnStaConnected()
 {
+    ESP_LOGI("WifiSta", "StaConnectedEvent");
     m_WifiSta.SetState(WifiSta::State::CONNECTED);
-    ESP_ERROR_CHECK(esp_timer_stop(m_StaConnectionTimer));
 }
 
 void WifiManagerContext::OnStaDisconnected()
 {   
+    ESP_LOGI("WifiSta", "StaDisconnectEvent");
     if (m_PendingNewConfiguration)
     {
         m_WifiSta.SetState(WifiSta::State::STOPPED);
@@ -146,28 +81,20 @@ void WifiManagerContext::OnStaDisconnected()
         if (m_WifiSta.GetState() == WifiSta::State::CONNECTED)
         {
             m_WifiSta.SetState(WifiSta::State::DISCONNECTED);
-            ESP_ERROR_CHECK(esp_timer_start_once(m_StaConnectionTimer, TIMER_EXPIRED_TIME_US));
-            esp_wifi_connect();
         }
     }
 }
 
 void WifiManagerContext::OnStaStart()
 {
-    if (m_WifiExtenderMode != WifiExtenderMode::FACTORY_DEFAULT_MODE)
+    ESP_LOGI("WifiSta", "StaStartEvent");
+    if (m_StaConfigurationValid == true)
     {
-        ESP_LOGI("WifiSta", "StaStartEvent");
         m_WifiSta.SetState(WifiSta::State::CONNECTING);
-        esp_err_t wifi_error = esp_wifi_connect();
-        if (wifi_error == ESP_ERR_WIFI_SSID)
-        {
-            m_WifiManagerState = WifiExtenderState::STA_CANNOT_CONNECT;
-        }
-        else
-        {
-            ESP_LOGI("WifiExtender", "Starting timer..");
-            ESP_ERROR_CHECK(esp_timer_start_once(m_StaConnectionTimer, TIMER_EXPIRED_TIME_US));
-        }
+    }
+    else
+    {
+        m_WifiSta.SetState(WifiSta::State::CONFIGURED);
     }
 }
 
@@ -175,34 +102,17 @@ void WifiManagerContext::OnStaStop()
 {
     ESP_LOGI("WifiSta", "StaStopEvent");
     m_WifiSta.SetState(WifiSta::State::STOPPED);
-    ESP_ERROR_CHECK(esp_timer_stop(m_StaConnectionTimer));
 }
 
 void WifiManagerContext::OnStaGotIp()
 {
-    esp_netif_dns_info_t dnsInfo = m_WifiSta.GetDnsInfo();
-    ESP_LOGI("DNS_INFO", "Primary dns ip: %d.%d.%d.%d", esp_ip4_addr1(&(dnsInfo.ip.u_addr.ip4)),
-                                            esp_ip4_addr2(&(dnsInfo.ip.u_addr.ip4)),
-                                            esp_ip4_addr3(&(dnsInfo.ip.u_addr.ip4)),
-                                            esp_ip4_addr4(&(dnsInfo.ip.u_addr.ip4)));
-    esp_netif_ip_info_t ipInfo = m_WifiSta.GetIpInfo();
-
-    if (ipInfo.gw.addr == dnsInfo.ip.u_addr.ip4.addr)
-    {
-        ESP_LOGI("DNS_INFO", "Setting default primary dns to 8.8.8.8");
-        dnsInfo.ip.u_addr.ip4.addr = esp_netif_ip4_makeu32(8, 8, 8, 8);
-    }
-            
-    m_WifiAp.SetUpDnsOnDhcpServer(dnsInfo);
-    m_WifiSta.SetDefaultNetIf();
-    m_WifiAp.EnableNat();
+    ESP_LOGI("WifiSta", "GotIpEvent");
     m_WifiSta.SetState(WifiSta::State::CONNECTED_AND_GOT_IP);
 }
 
 void WifiManagerContext::OnStaLostIp()
 {
-    ESP_LOGI("WifiSta", "StaLostIpEvent");
-    m_WifiAp.DisableNat();
+    ESP_LOGI("WifiSta", "LostIpEvent");
     if (m_WifiSta.GetState() != WifiSta::State::STOPPED)
     {
         m_WifiSta.SetState(WifiSta::State::DISCONNECTED);

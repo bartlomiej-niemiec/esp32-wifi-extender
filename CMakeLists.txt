@@ -14,8 +14,6 @@ if(${TARGET_PLATFORM} STREQUAL "esp32")
             ${CMAKE_SOURCE_DIR}/hw/wifi_extender/platform/esp32_wifi_extender
             ${CMAKE_SOURCE_DIR}/hw/nvs/nvs_interface
             ${CMAKE_SOURCE_DIR}/hw/nvs/platform/esp32_nvs_flash
-            ${CMAKE_SOURCE_DIR}/os/os_interface
-            ${CMAKE_SOURCE_DIR}/os/implementations/freertos_espidf
     )
     elseif(${TARGET_PLATFORM} STREQUAL "gateway")
         set(PROJECT_DIR ${CMAKE_SOURCE_DIR}/platform/esp32/gateway)

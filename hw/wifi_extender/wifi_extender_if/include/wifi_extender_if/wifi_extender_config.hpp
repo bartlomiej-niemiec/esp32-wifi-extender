@@ -13,20 +13,18 @@ namespace WifiExtender
 
 struct AccessPointConfig {
 
+    AccessPointConfig(std::string ssid, std::string password, int max_clients = 1):
+        ssid(std::move(ssid)), password(std::move(password)), max_clients(max_clients) {}
+    
     AccessPointConfig():
         ssid(),
         password(),
-        max_clients(0){};
+        max_clients() {}
 
-    AccessPointConfig(std::string ssid, std::string password, int max_clients = 1):
-        ssid(ssid),
-        password(password),
-        max_clients(max_clients)
-        {};
-
-    std::string ssid;
-    std::string password;
-    const int max_clients;
+    AccessPointConfig(const AccessPointConfig & config) = default;
+    AccessPointConfig(AccessPointConfig & config) = default;
+    AccessPointConfig & operator=(AccessPointConfig & apconfig) = default;
+    AccessPointConfig & operator=(const AccessPointConfig & apconfig) = default;
 
     bool operator==(AccessPointConfig const& apconfig) const
     {
@@ -38,26 +36,32 @@ struct AccessPointConfig {
         return !this->operator==(apconfig);
     };
 
-    void operator=(AccessPointConfig const& apconfig)
-    {
-        this->ssid = apconfig.ssid;
-        this->password = apconfig.password;
+    bool IsValid() const {
+        return this->operator!=(AccessPointConfig());
     }
+
+    std::string ssid;
+    std::string password;
+    int max_clients;
 
 };
 
 struct StaConfig {
 
-    StaConfig():
-        ssid(),
-        password(){};
-
-    StaConfig(std::string ssid, std::string password):
-        ssid(ssid),
-        password(password){};
-
     std::string ssid;
     std::string password;
+
+    StaConfig(std::string ssid, std::string password):
+        ssid(std::move(ssid)), password(std::move(password)) {}
+
+    StaConfig():
+        ssid(),
+        password() {}
+
+    StaConfig(StaConfig & config) = default;
+    StaConfig(const StaConfig & config) = default;
+    StaConfig & operator=(StaConfig & staconfig) = default;
+    StaConfig & operator=(const StaConfig & staconfig) = default;
 
     bool operator==(StaConfig const& staconfig) const
     {
@@ -69,27 +73,44 @@ struct StaConfig {
         return !this->operator==(staconfig);
     };
 
-    void operator=(StaConfig const& staconfig)
-    {
-        this->ssid = staconfig.ssid;
-        this->password = staconfig.password;
+    bool IsValid() const {
+        return this->operator!=(StaConfig());
     }
 
 };
 
-enum class WifiExtenderMode {
-    FACTORY_DEFAULT_MODE,
-    OPERATION
+struct WifiExtenderConfig {
+    
+    AccessPointConfig apConfig;
+    StaConfig         staConfig;
+
+    WifiExtenderConfig(const AccessPointConfig& ap, const StaConfig& sta)
+    : apConfig(ap), staConfig(sta) {}
+
+    WifiExtenderConfig():
+       apConfig(),
+       staConfig() {}
+
+    WifiExtenderConfig(const WifiExtenderConfig&)            = default;
+    WifiExtenderConfig(WifiExtenderConfig&&)                 = default;
+    WifiExtenderConfig& operator=(const WifiExtenderConfig&) = default;
+    WifiExtenderConfig& operator=(WifiExtenderConfig&&)      = default;
+
+    bool operator==(const WifiExtenderConfig& other) const {
+        return apConfig == other.apConfig && staConfig == other.staConfig;
+    }
+    bool operator!=(const WifiExtenderConfig& other) const {
+        return !(*this == other);
+    }
 };
 
-
-enum class WifiExtenderState{
-    UNINTIALIZED,
-    INITIALIZED,
+enum class WifiExtenderState : uint8_t {
+    STOPPED = 0,
     STARTED,
-    IN_PROGRESS,
+    CONNECTING,
     RUNNING,
-    STOPEED,
+    STOPPING,
+    NEW_CONFIGURATION_PENDING,
     STA_CANNOT_CONNECT
 };
 
@@ -102,34 +123,47 @@ static const std::string_view WifiExtenderStaToString(WifiExtenderState & state)
 {
     switch(state)
     {
-        case WifiExtenderState::UNINTIALIZED:
-        {
-            return "WifiExtender not initialized";
-        }
-        case WifiExtenderState::INITIALIZED:
-        {
-            return "WifiExtender initialized";
-        }
         case WifiExtenderState::STARTED:
         {
             return "WifiExtender started";
         }
-        case WifiExtenderState::IN_PROGRESS:
+        break;
+
+        case WifiExtenderState::CONNECTING:
         {
-            return "WifiExtender in progres...";
+            return "WifiExtender connecting";
         }
+        break;
+
         case WifiExtenderState::RUNNING:
         {
             return "WifiExtender running";
         }
-        case WifiExtenderState::STOPEED:
+        break;
+
+        case WifiExtenderState::STOPPED:
         {
             return "WifiExtender stopped";
         }
+        break;
+
+        case WifiExtenderState::STOPPING:
+        {
+            return "WifiExtender stopping";
+        }
+        break; 
+
         case WifiExtenderState::STA_CANNOT_CONNECT:
         {
             return "WifiExtender STA cannot connect";
         }
+        break;
+
+        case WifiExtenderState::NEW_CONFIGURATION_PENDING:
+        {
+            return "WifiExtender new configuration pending...";
+        }
+        break;
     };
     
     return "WifiExtender unknown state";

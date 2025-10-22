@@ -8,6 +8,16 @@
 #include "config.hpp"
 #include <string>
 
+class LogEventListener:
+    public Hw::WifiExtender::EventListener
+{
+    void Callback(Hw::WifiExtender::WifiExtenderState event) override
+    {
+        ESP_LOGI("WifiExtender", "State: %s", Hw::WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
+    }
+};
+
+
 extern "C" void app_main(void)
 {
     using namespace Hw::Nvs;
@@ -19,41 +29,11 @@ extern "C" void app_main(void)
     );
 
     const StaConfig staConfig;
-
     WifiExtenderConfig config(apConfig, staConfig);
-
     Nvs::Init();
     WifiExtenderFactory::WifiExtenderBoundle wifiExtenderBoundle = WifiExtenderFactory::GetWifiExtenderBoundle();
     WifiExtenderIf *pWifiExtenderIf = wifiExtenderBoundle.pWifiExtenderIf;
+    static LogEventListener listener;
+    pWifiExtenderIf->RegisterListener(&listener);
     pWifiExtenderIf->Startup(config);
-
-    WifiExtenderState state;
-
-    while (state != WifiExtenderState::RUNNING)
-    {
-        state = pWifiExtenderIf->GetState();
-        ESP_LOGI("WifiExtender", "State: %s", WifiExtenderHelpers::WifiExtenderStaToString(state).data());
-        vTaskDelay((2000 / portTICK_PERIOD_MS));
-    }
-
-    ESP_LOGI("WifiExtender", "Shutdown extender");
-
-    const StaConfig newStaConfig(
-        "TP-Link_777D",
-        "58516386"
-    );
-
-    config.apConfig = apConfig;
-    config.staConfig = newStaConfig;
-
-    pWifiExtenderIf->UpdateConfig(config);
-
-    while (true)
-    {
-        state = pWifiExtenderIf->GetState();
-        ESP_LOGI("WifiExtender", "State: %s", WifiExtenderHelpers::WifiExtenderStaToString(state).data());
-        vTaskDelay((1000 / portTICK_PERIOD_MS));
-    }
-
-
 }

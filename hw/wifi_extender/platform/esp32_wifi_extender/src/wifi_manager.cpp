@@ -349,30 +349,21 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
     {
         case MessageQueue::EventType::StartReq:
         {
-            if (s.mgrState == WifiExtenderState::STOPPED)
-            {
-                d.next = WifiExtenderState::STARTED;
-                d.newState = true;
-                push(d, Effect::ApplyConfig);
-                push(d, Effect::WifiStart);
-                push(d, Effect::NotifyListener);
-            }
+            d.next = WifiExtenderState::STARTED;
+            d.newState = true;
+            push(d, Effect::ApplyConfig);
+            push(d, Effect::WifiStart);
+            push(d, Effect::NotifyListener);
         }
         break;
 
         case MessageQueue::EventType::StopReq:
         {
-            if (s.mgrState == WifiExtenderState::RUNNING ||
-                s.mgrState == WifiExtenderState::STARTED ||
-                s.mgrState == WifiExtenderState::CONNECTING ||
-                s.mgrState == WifiExtenderState::STA_CANNOT_CONNECT)
-            {
-                d.next = WifiExtenderState::STOPPING;
-                d.newState = true;
-                push(d, Effect::DisableNat);
-                push(d, Effect::WifiStop);
-                push(d, Effect::NotifyListener);
-            }
+            d.next = WifiExtenderState::STOPPING;
+            d.newState = true;
+            push(d, Effect::DisableNat);
+            push(d, Effect::WifiStop);
+            push(d, Effect::NotifyListener);
         }
         break;
 

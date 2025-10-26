@@ -23,9 +23,7 @@ public:
 
     virtual ScannerState GetCurrentState() = 0;
 
-    virtual const std::vector<WifiNetwork> & GetResults() const = 0;
-
-    virtual void RegisterOnNetworkFound(WifiNetworkCallback cb) = 0;      
+    virtual const std::vector<WifiNetwork> & GetResults() const = 0;   
     
     virtual void RegisterOnFinished(ScanFinishedCallback cb) = 0;
 

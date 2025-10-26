@@ -29,6 +29,7 @@ class MessageQueue
                 ScanStartReq,
                 CancelScanReq,
                 ScanDone,
+                StopScan,
                 EspWifiEvent,
                 EspIpEvent,
                 StaTimerReconnect,
@@ -49,6 +50,7 @@ class MessageQueue
                 case EventType::ScanStartReq: return "ScanStartReq event";
                 case EventType::ScanDone: return "ScanDone event";
                 case EventType::CancelScanReq: return "ScanCancel event";
+                case EventType::StopScan: return "StopScan event";
             }
 
             return "Unknown event";
@@ -132,9 +134,7 @@ class WifiManager:
 
         ScannerState GetCurrentState() override;
 
-        const std::vector<WifiNetwork> & GetResults() const override;
-
-        void RegisterOnNetworkFound(WifiNetworkCallback cb) override;      
+        const std::vector<WifiNetwork> & GetResults() const override;    
         
         void RegisterOnFinished(ScanFinishedCallback cb) override;
 
@@ -187,6 +187,8 @@ class WifiManager:
 
         WifiScanningConfig m_WifiScanningOptions;
 
+        ScanFinishedCallback m_ScanFinishedCb;
+
         WifiExtenderConfig m_PendingConfig;
 
         esp_event_handler_instance_t m_wifiAnyInst;
@@ -223,7 +225,12 @@ class WifiManager:
             SetDefaultNetIf,
             StartStaBackoffTimer,
             StopStaBackoffTimer,
+            StartScan,
+            StopScan,
+            CancelScan,
+            SignalThatScanCmpl,
             NotifyListener,
+            NotifyScannerListener,
             SetFalseShutdownFlag
         };
 
@@ -264,9 +271,11 @@ class WifiManager:
 
         static void RetryConnectToNetwork(void *arg);
 
+        static void ScanningTimeExpired(void *arg);
+
         esp_timer_handle_t m_StaConnectionTimer;
 
-        esp_timer_create_args_t m_timerArgs;
+        esp_timer_handle_t m_ScannerTimer;
 
 };
 

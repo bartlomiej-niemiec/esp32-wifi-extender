@@ -172,17 +172,27 @@ WifiManager::WifiManager():
     m_ScanningActive(false),
     m_ShutdownInProgress(false),
     m_StaConnectionTimer(nullptr),
-    m_timerArgs()
+    m_ScannerTimer(nullptr)
 {
 
     assert(esp_timer_init() != ESP_ERR_NO_MEM );
-    m_timerArgs.callback = RetryConnectToNetwork;
-    m_timerArgs.arg = this;
-    m_timerArgs.dispatch_method = ESP_TIMER_TASK;
-    m_timerArgs.name = "STA_CONNECTION_TIMER";
-    m_timerArgs.skip_unhandled_events = true;
+    esp_timer_create_args_t timerStaArgs;
+    timerStaArgs.callback = RetryConnectToNetwork;
+    timerStaArgs.arg = this;
+    timerStaArgs.dispatch_method = ESP_TIMER_TASK;
+    timerStaArgs.name = "STA_CONNECTION_TIMER";
+    timerStaArgs.skip_unhandled_events = true;
 
-    ESP_ERROR_CHECK(esp_timer_create(&m_timerArgs, &m_StaConnectionTimer));
+    ESP_ERROR_CHECK(esp_timer_create(&timerStaArgs, &m_StaConnectionTimer));
+
+    esp_timer_create_args_t timerScannerArgs;
+    timerScannerArgs.callback = RetryConnectToNetwork;
+    timerScannerArgs.arg = this;
+    timerScannerArgs.dispatch_method = ESP_TIMER_TASK;
+    timerScannerArgs.name = "SCANNER_TIMER";
+    timerScannerArgs.skip_unhandled_events = true;
+
+    ESP_ERROR_CHECK(esp_timer_create(&timerScannerArgs, &m_ScannerTimer));
 
     assert(true == Init());
 
@@ -210,38 +220,29 @@ WifiManager::~WifiManager()
 bool WifiManager::Startup(const WifiExtenderConfig & config)
 {
     MessageQueue::Message msg(MessageQueue::EventType::StartReq, -1);
+    m_StartUpInProgress = true;
+    m_PendingConfig = config;
     bool res = m_MessageQueue.Add(msg);
-    if (res)
-    {
-        m_StartUpInProgress = true;
-        m_PendingConfig = config;
-    }
     return res;
 }
 
 bool WifiManager::Shutdown()
 {
     MessageQueue::Message msg(MessageQueue::EventType::StopReq, -1);
+    m_ShutdownInProgress = true;
+    m_StartUpInProgress = false;
+    m_ScanningActive = false;
+    m_WifiManagerContext.m_PendingNewConfiguration = false;
     bool res = m_MessageQueue.Add(msg);
-    if (res)
-    {
-        m_ShutdownInProgress = true;
-        m_StartUpInProgress = false;
-        m_ScanningActive = false;
-        m_WifiManagerContext.m_PendingNewConfiguration = false;
-    }
     return res;
 }
 
 bool WifiManager::UpdateConfig(const WifiExtenderConfig & config)
 {
     MessageQueue::Message msg(MessageQueue::EventType::UpdateConfigReq, -1);
+    m_WifiManagerContext.m_PendingNewConfiguration = true;
+    m_PendingConfig = config;
     bool res = m_MessageQueue.Add(msg);
-    if (res)
-    {
-        m_WifiManagerContext.m_PendingNewConfiguration = true;
-        m_PendingConfig = config;
-    }
     return res;
 }
 
@@ -276,6 +277,7 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
             case WIFI_EVENT_STA_START:
             case WIFI_EVENT_STA_STOP:
             case WIFI_EVENT_STA_DISCONNECTED:
+            case WIFI_EVENT_SCAN_DONE:
             {
                 msg.event = MessageQueue::EventType::EspWifiEvent;
                 msg.espEventCode = event_id;
@@ -311,6 +313,14 @@ void WifiManager::RetryConnectToNetwork(void *arg)
     ESP_LOGI("WifiExtender", "Timer expired..");
     WifiManager* pWifiManager = reinterpret_cast<WifiManager*>(arg);
     MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
+    pWifiManager->m_MessageQueue.Add(msg);
+}
+
+void WifiManager::ScanningTimeExpired(void *arg)
+{
+    ESP_LOGI("WifiExtender", "Scanning timer..");
+    WifiManager* pWifiManager = reinterpret_cast<WifiManager*>(arg);
+    MessageQueue::Message msg(MessageQueue::EventType::StopScan, -1);
     pWifiManager->m_MessageQueue.Add(msg);
 }
 
@@ -379,6 +389,25 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
         }
         break;
 
+        case MessageQueue::EventType::ScanStartReq:
+        {
+            push(d, Effect::StartScan);
+        }
+        break;
+
+        case MessageQueue::EventType::ScanDone:
+        {
+            push(d, Effect::SignalThatScanCmpl);
+            push(d, Effect::NotifyScannerListener);
+        }
+        break;
+
+        case MessageQueue::EventType::CancelScanReq:
+        {
+            push(d, Effect::CancelScan);
+        }
+        break;
+
         case MessageQueue::EventType::EspWifiEvent:
         {
             switch (msg.espEventCode) {
@@ -407,6 +436,14 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                         push(d, Effect::NotifyListener);
                     }
                     break;
+                case WIFI_EVENT_SCAN_DONE:
+                {
+                    if (m_ScanningActive)
+                    {
+                        push(d, Effect::SignalThatScanCmpl);
+                    }
+                }
+                break;
         }
         }
         break;
@@ -544,12 +581,53 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
         }
         break;
 
+        case Effect::StartScan:
+        {
+            ESP_ERROR_CHECK(esp_timer_start_once(m_ScannerTimer, (m_WifiScanningOptions.time_in_s * 1e6)));
+            m_WifiScanner.StartScanFor(m_WifiScanningOptions.opts);
+        }
+        break;
+
+        case Effect::CancelScan:
+        {
+            if (esp_timer_is_active(m_ScannerTimer))
+            {
+                ESP_ERROR_CHECK(esp_timer_stop(m_ScannerTimer));
+            }
+            m_WifiScanner.CancelScan(false);
+        }
+        break;
+
+        case Effect::StopScan:
+        {
+            m_WifiScanner.CancelScan(true);
+        }
+        break;
+
+        case Effect::SignalThatScanCmpl:
+        {
+            if (esp_timer_is_active(m_ScannerTimer))
+            {
+                ESP_ERROR_CHECK(esp_timer_stop(m_ScannerTimer));
+            }
+            m_WifiScanner.ScanningCompleteSignal();
+        }
+        break;
+
         case Effect::NotifyListener:
         if (nullptr != m_pEventListener)
         {
             m_pEventListener->Callback(m_WifiManagerContext.m_WifiManagerState);
         }
         break;
+
+        case Effect::NotifyScannerListener:
+        {
+            if (nullptr != m_ScanFinishedCb)
+            {
+                m_ScanFinishedCb();
+            }
+        }
 
         case Effect::SetFalseShutdownFlag:
         {
@@ -571,13 +649,10 @@ bool WifiManager::ScanFor(const int & time_in_s,
     if (IsScanningPossible())
     {
         MessageQueue::Message msg(MessageQueue::EventType::ScanStartReq, -1);
+        m_WifiScanningOptions.opts = opts;
+        m_WifiScanningOptions.time_in_s = time_in_s;
+        m_ScanningActive = true;
         res = m_MessageQueue.Add(msg);
-        if (res)
-        {
-            m_WifiScanningOptions.opts = opts;
-            m_WifiScanningOptions.time_in_s = time_in_s;
-            m_ScanningActive = true;
-        }
     }
     return res;
 }
@@ -602,15 +677,11 @@ const std::vector<WifiNetwork> & WifiManager::GetResults() const
 {
     return m_WifiScanner.GetResults();
 }
-
-void WifiManager::RegisterOnNetworkFound(WifiNetworkCallback cb)
-{
-    
-}
-        
+ 
 void WifiManager::RegisterOnFinished(ScanFinishedCallback cb)
 {
-   
+   assert(nullptr == m_ScanFinishedCb);
+   m_ScanFinishedCb = cb;
 }
 
 bool WifiManager::IsShutdownPossible() const

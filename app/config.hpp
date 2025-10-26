@@ -7,6 +7,6 @@ static constexpr std::string_view DEFAULT_AP_SSID = "ESP32";
 static constexpr std::string_view DEFAULT_AP_PASSWORD = "dupadupa1";
 
 static constexpr std::string_view DEFAULT_STA_SSID = "DEFAULT";
-static constexpr std::string_view DEFAULT_STA_PASSWORD = "DEFAULT";
+static constexpr std::string_view DEFAULT_STA_PASSWORD = "DEFAULT12345";
 
 #endif

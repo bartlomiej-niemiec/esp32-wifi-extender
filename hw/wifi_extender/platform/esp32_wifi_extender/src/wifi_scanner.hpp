@@ -2,6 +2,7 @@
 #define WIFIEXTENDER_WIFISCANNER_HPP
 
 #include "wifi_extender_if/wifi_extencer_scanner_types.hpp"
+#include "esp_wifi.h"
 
 namespace WifiExtender
 {
@@ -12,14 +13,9 @@ class WifiScanner
 
         WifiScanner();
 
-        bool StartScanFor(const int & time_in_s,
-                    const ScanOptions& opts = {});
+        bool StartScanFor(const ScanOptions& opts = {});
 
-        bool CancelScan();
-
-        void CleanResults();
-
-        bool AddApToResults(const WifiNetwork & network);
+        bool CancelScan(bool timerExpired);
 
         void ScanningCompleteSignal();
 
@@ -32,6 +28,10 @@ class WifiScanner
         std::vector<WifiNetwork> m_ScannedNetworks;
 
         ScannerState m_State;
+
+        void CleanResults();
+
+        AuthMode ToAuthMode(wifi_auth_mode_t mode);
     
 };
 

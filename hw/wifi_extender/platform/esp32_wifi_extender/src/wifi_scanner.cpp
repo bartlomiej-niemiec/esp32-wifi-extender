@@ -1,5 +1,4 @@
 #include "wifi_scanner.hpp"
-#include "esp_wifi.h"
 
 namespace WifiExtender
 {
@@ -10,8 +9,7 @@ WifiScanner::WifiScanner():
 {
 }
 
-bool WifiScanner::StartScanFor(const int & time_in_s,
-                    const ScanOptions& opts)
+bool WifiScanner::StartScanFor(const ScanOptions& opts)
 {
     m_State = ScannerState::Scanning;
     wifi_scan_config_t scanConfig = {};
@@ -19,7 +17,7 @@ bool WifiScanner::StartScanFor(const int & time_in_s,
     wifi_active_scan_time_t activeScanTime = {
         .min = 30,
         .max = 120
-    };
+    };                     
     scanTime.active = activeScanTime;
     scanTime.passive = 100;
 
@@ -31,27 +29,38 @@ bool WifiScanner::StartScanFor(const int & time_in_s,
     return  error == ESP_OK;
 }
 
-bool WifiScanner::CancelScan()
+bool WifiScanner::CancelScan(bool timerExpired)
 {
-    m_State = ScannerState::Idle;
-
-    return false;
+    if (timerExpired)
+    {
+        m_State = ScannerState::Cancelled;
+    }
+    return esp_wifi_scan_stop() == ESP_OK;
 }
 
 void WifiScanner::ScanningCompleteSignal()
 {
-    m_State = ScannerState::HaveResults;
+    wifi_ap_record_t ap_record = {};
+    while (esp_wifi_scan_get_ap_record(&ap_record) == ESP_OK)
+    {
+        m_ScannedNetworks.emplace_back(
+            WifiNetwork(
+                ap_record.ssid,
+                sizeof(ap_record.ssid),
+                ap_record.bssid,
+                sizeof(ap_record.bssid),
+                ap_record.rssi,
+                0,
+                ToAuthMode(ap_record.authmode)
+            )
+        );
+    }
+    m_State = m_State == ScannerState::Cancelled ? ScannerState::Idle : ScannerState::Done;
 }
 
 void WifiScanner::CleanResults()
 {
-    esp_wifi_clear_ap_list();
     m_ScannedNetworks.clear();
-}
-
-bool WifiScanner::AddApToResults(const WifiNetwork & network)
-{
-    return false;
 }
 
 const std::vector<WifiNetwork> & WifiScanner::GetResults() const
@@ -62,6 +71,20 @@ const std::vector<WifiNetwork> & WifiScanner::GetResults() const
 ScannerState WifiScanner::GetScannerState() const
 {
     return m_State;
+}
+
+AuthMode WifiScanner::ToAuthMode(wifi_auth_mode_t mode)
+{
+    switch (mode)
+    {
+        case WIFI_AUTH_OPEN: return AuthMode::Open;
+        case WIFI_AUTH_WEP: return AuthMode::WEP;
+        case WIFI_AUTH_WPA_PSK: return AuthMode::WPA_PSK;
+        case WIFI_AUTH_WPA2_PSK: return AuthMode::WPA2_PSK;
+        case WIFI_AUTH_WPA_WPA2_PSK: return AuthMode::WPA_WPA2_PSK;
+        case WIFI_AUTH_WPA3_PSK: return AuthMode::WPA3_PSK;
+        default: return AuthMode::Unknown;
+    };
 }
 
 }

@@ -35,40 +35,23 @@ extern "C" void app_main(void)
     Nvs::Init();
     WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetWifiExtender();
     WifiExtenderScannerIf * pScanner = rWifiExtender.GetScanner();
+    pScanner->RegisterOnFinished([pScanner](){
+        const std::vector<WifiNetwork> & networks = pScanner->GetResults();
+        for (const WifiNetwork & n : networks)
+        {
+            printNetwork(n);
+        }
+    });
     assert(nullptr != pScanner);
     static LogEventListener listener;
     rWifiExtender.RegisterListener(&listener);
     rWifiExtender.Startup(config);
-    volatile bool scanningStarted = false;
     while (true)
     {
-        if (scanningStarted == false)
+        if (rWifiExtender.GetState() == WifiExtenderState::RUNNING)
         {
-            if (rWifiExtender.GetState() == WifiExtenderState::RUNNING)
-            {
-                pScanner->ScanFor(10);
-                scanningStarted = true;
-            }
+            pScanner->ScanFor(10);
+            break;
         }
-        else
-        {
-            if (pScanner->GetCurrentState() == ScannerState::Done)
-            {
-                const std::vector<WifiNetwork> & networks = pScanner->GetResults();
-                for (const WifiNetwork & n : networks)
-                {
-                    printNetwork(n);
-                }
-                break;
-            }
-        }
-        ESP_LOGI("mian", "Scanner State: %s", getScannerStateString(pScanner->GetCurrentState()).data());
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-
-    while (true)
-    {
-        ESP_LOGI("main", "....");
-        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }

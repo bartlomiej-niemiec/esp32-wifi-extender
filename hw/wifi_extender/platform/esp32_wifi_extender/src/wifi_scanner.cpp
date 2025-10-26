@@ -40,18 +40,30 @@ bool WifiScanner::CancelScan(bool timerExpired)
 
 void WifiScanner::ScanningCompleteSignal()
 {
-    wifi_ap_record_t ap_record = {};
-    while (esp_wifi_scan_get_ap_record(&ap_record) == ESP_OK)
-    {
+    uint16_t count = 0;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&count));
+    if (count == 0) { m_State = ScannerState::Done; return; }
+
+    std::vector<wifi_ap_record_t> recs(count);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&count, recs.data()));
+
+    m_ScannedNetworks.clear();
+    m_ScannedNetworks.reserve(count);
+    for (auto& r : recs) {
+        // ssid może nie być null-terminated — licz do pierwszego '\0' lub do 32
+        size_t ssid_len = strnlen(reinterpret_cast<const char*>(r.ssid), sizeof(r.ssid));
+        std::string ssid(reinterpret_cast<const char*>(r.ssid), ssid_len);
+        std::array<uint8_t, 6> bssid{};
+        std::copy(std::begin(r.bssid), std::end(r.bssid), bssid.begin());
         m_ScannedNetworks.emplace_back(
             WifiNetwork(
-                ap_record.ssid,
-                sizeof(ap_record.ssid),
-                ap_record.bssid,
-                sizeof(ap_record.bssid),
-                ap_record.rssi,
+                r.ssid,
+                sizeof(r.ssid),
+                r.bssid,
+                sizeof(r.bssid),
+                r.rssi,
                 0,
-                ToAuthMode(ap_record.authmode)
+                ToAuthMode(r.authmode)
             )
         );
     }

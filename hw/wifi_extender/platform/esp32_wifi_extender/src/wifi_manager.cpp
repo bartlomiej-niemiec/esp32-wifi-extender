@@ -186,7 +186,7 @@ WifiManager::WifiManager():
     ESP_ERROR_CHECK(esp_timer_create(&timerStaArgs, &m_StaConnectionTimer));
 
     esp_timer_create_args_t timerScannerArgs;
-    timerScannerArgs.callback = RetryConnectToNetwork;
+    timerScannerArgs.callback = ScanningTimeExpired;
     timerScannerArgs.arg = this;
     timerScannerArgs.dispatch_method = ESP_TIMER_TASK;
     timerScannerArgs.name = "SCANNER_TIMER";
@@ -441,6 +441,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                     if (m_ScanningActive)
                     {
                         push(d, Effect::SignalThatScanCmpl);
+                        push(d, Effect::NotifyScannerListener);
                     }
                 }
                 break;
@@ -611,6 +612,7 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
                 ESP_ERROR_CHECK(esp_timer_stop(m_ScannerTimer));
             }
             m_WifiScanner.ScanningCompleteSignal();
+            m_ScanningActive = false;
         }
         break;
 

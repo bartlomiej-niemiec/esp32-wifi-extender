@@ -7,9 +7,6 @@
 
 #include "wifi_extencer_scanner_types.hpp"
 
-namespace Hw
-{
-
 namespace WifiExtender
 {
 
@@ -26,16 +23,14 @@ public:
 
     virtual ScannerState GetCurrentState() = 0;
 
-    virtual std::vector<WifiNetwork> GetResults() const = 0;
+    virtual const std::vector<WifiNetwork> & GetResults() const = 0;
 
-    virtual void OnNetworkFound(WifiNetworkCallback cb) = 0;      
+    virtual void RegisterOnNetworkFound(WifiNetworkCallback cb) = 0;      
     
-    virtual void OnFinished(ScanFinishedCallback cb) = 0;
+    virtual void RegisterOnFinished(ScanFinishedCallback cb) = 0;
 
 };
  
-}
-
 }
 
 #endif

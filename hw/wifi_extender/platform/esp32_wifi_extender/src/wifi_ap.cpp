@@ -16,12 +16,6 @@
 
 #include "esp_log.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -44,7 +38,7 @@ bool WifiAp::Init()
 }
 
 
-bool WifiAp::SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config)
+bool WifiAp::SetConfig(const AccessPointConfig &ap_config)
 {
     const uint8_t ssid_len = ap_config.ssid.length();
 
@@ -98,10 +92,6 @@ bool WifiAp::DisableNat()
     return esp_netif_napt_disable(m_ap_netif) == ESP_OK ? true : false;
 }
 
-
-}
-
-}
 
 }
 

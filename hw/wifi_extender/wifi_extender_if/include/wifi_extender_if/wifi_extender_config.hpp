@@ -5,9 +5,6 @@
 #include <string>
 #include <string_view>
 
-namespace Hw
-{
-
 namespace WifiExtender
 {
 
@@ -185,8 +182,6 @@ class EventListener
 
 };
 
-
-}
 
 }
 

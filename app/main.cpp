@@ -9,11 +9,11 @@
 #include <string>
 
 class LogEventListener:
-    public Hw::WifiExtender::EventListener
+    public WifiExtender::EventListener
 {
-    void Callback(Hw::WifiExtender::WifiExtenderState event) override
+    void Callback(WifiExtender::WifiExtenderState event) override
     {
-        ESP_LOGI("WifiExtender", "State: %s", Hw::WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
+        ESP_LOGI("WifiExtender", "State: %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
     }
 };
 
@@ -21,7 +21,7 @@ class LogEventListener:
 extern "C" void app_main(void)
 {
     using namespace Hw::Nvs;
-    using namespace Hw::WifiExtender;
+    using namespace WifiExtender;
 
     const AccessPointConfig apConfig(
         static_cast<std::string>(DEFAULT_AP_SSID),
@@ -31,9 +31,8 @@ extern "C" void app_main(void)
     const StaConfig staConfig;
     WifiExtenderConfig config(apConfig, staConfig);
     Nvs::Init();
-    WifiExtenderFactory::WifiExtenderBoundle wifiExtenderBoundle = WifiExtenderFactory::GetWifiExtenderBoundle();
-    WifiExtenderIf *pWifiExtenderIf = wifiExtenderBoundle.pWifiExtenderIf;
+    WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetWifiExtender();
     static LogEventListener listener;
-    pWifiExtenderIf->RegisterListener(&listener);
-    pWifiExtenderIf->Startup(config);
+    rWifiExtender.RegisterListener(&listener);
+    rWifiExtender.Startup(config);
 }

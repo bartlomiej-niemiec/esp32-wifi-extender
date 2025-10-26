@@ -1,12 +1,6 @@
 #include "wifi_manager_context.hpp"
 #include "esp_log.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -118,12 +112,5 @@ void WifiManagerContext::OnStaLostIp()
         m_WifiSta.SetState(WifiSta::State::DISCONNECTED);
     }
 }
-
-
-}
-
-
-}
-
 
 }

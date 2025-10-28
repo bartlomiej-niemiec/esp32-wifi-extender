@@ -47,12 +47,28 @@ struct WifiNetwork {
 
 };
 
+static const std::string_view getAuthString(AuthMode auth)
+{
+    switch (auth)
+    {
+        case AuthMode::Open: return "Open";
+        case AuthMode::WEP: return "WEP";
+        case AuthMode::WPA_PSK: return "WPA_PSK";
+        case AuthMode::WPA2_PSK: return "WPA2_PSK";
+        case AuthMode::WPA_WPA2_PSK: return "WPA_WPA2_PSK";
+        case AuthMode::WPA3_PSK: return "WPA3_PSK";
+        default: return "Unknown";
+    };
+}
+
 static void printNetwork(const WifiNetwork & netowrk)
 {
     ESP_LOGI("WifiScanner", "Network SSID: %s", netowrk.ssid.data());
-    ESP_LOGI("WifiScanner", "Network BSSID: %s", netowrk.bssid.data());
+    ESP_LOGI("WifiScanner", "BSSID: %02X:%02X:%02X:%02X:%02X:%02X",
+             netowrk.bssid[0], netowrk.bssid[1], netowrk.bssid[2], netowrk.bssid[3], netowrk.bssid[4], netowrk.bssid[5]);
+    ESP_LOGI("WifiScanner", "Channel: %i", netowrk.channel);
     ESP_LOGI("WifiScanner", "Network rssi: %i", netowrk.rssi);
-    ESP_LOGI("WifiScanner", "Network auth mode: %i", static_cast<int>(netowrk.auth));
+    ESP_LOGI("WifiScanner", "Network auth mode: %s", getAuthString(netowrk.auth).data());
 }
 
 static const std::string_view getScannerStateString(ScannerState state)
@@ -70,7 +86,7 @@ static const std::string_view getScannerStateString(ScannerState state)
 
 struct ScanOptions {
     bool     passive    = true;
-    uint16_t dwell_ms   = 120;
+    uint8_t  dwell_ms   = 120;
     bool     show_hidden= true;
 };
 

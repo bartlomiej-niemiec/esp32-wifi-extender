@@ -29,7 +29,6 @@ class MessageQueue
                 ScanStartReq,
                 CancelScanReq,
                 ScanDone,
-                StopScan,
                 EspWifiEvent,
                 EspIpEvent,
                 StaTimerReconnect,
@@ -50,7 +49,6 @@ class MessageQueue
                 case EventType::ScanStartReq: return "ScanStartReq event";
                 case EventType::ScanDone: return "ScanDone event";
                 case EventType::CancelScanReq: return "ScanCancel event";
-                case EventType::StopScan: return "StopScan event";
             }
 
             return "Unknown event";
@@ -127,8 +125,7 @@ class WifiManager:
 
         WifiExtenderState GetState() const;
 
-        bool ScanFor(const int & time_in_s,
-                        const ScanOptions& opts = {}) override;
+        bool Scan(const ScanOptions& opts = {}) override;
 
         bool CancelScan() override;
 
@@ -204,13 +201,13 @@ class WifiManager:
         bool m_ShutdownInProgress;
 
         struct Snapshot{
-            WifiExtenderState mgrState;
-            WifiAp::State apState;
-            WifiSta::State staState;
-            bool scanningActive;
-            bool updateConfig;
-            bool startUpInProgress;
-            bool staCfgValid;
+            const WifiExtenderState mgrState;
+            const WifiAp::State apState;
+            const WifiSta::State staState;
+            const bool scanningActive;
+            const bool updateConfig;
+            const bool startUpInProgress;
+            const bool staCfgValid;
         };
 
         enum class Effect : uint8_t {
@@ -218,6 +215,7 @@ class WifiManager:
             ApplyConfig,
             WifiStart,
             WifiStop,
+            StaDisconnect,
             DisableNat,
             EnableNat,
             StaConnect,
@@ -228,6 +226,7 @@ class WifiManager:
             StartScan,
             StopScan,
             CancelScan,
+            ClearLastScanResults,
             SignalThatScanCmpl,
             NotifyListener,
             NotifyScannerListener,
@@ -251,6 +250,8 @@ class WifiManager:
 
         Snapshot makeSnapshot() const;
 
+        void printSnapshot(const Snapshot& s);
+
         Decision reduce(const Snapshot& s, const MessageQueue::Message& msg) const;
 
         void runEffect(Effect e, const MessageQueue::Message& m);
@@ -271,11 +272,7 @@ class WifiManager:
 
         static void RetryConnectToNetwork(void *arg);
 
-        static void ScanningTimeExpired(void *arg);
-
         esp_timer_handle_t m_StaConnectionTimer;
-
-        esp_timer_handle_t m_ScannerTimer;
 
 };
 

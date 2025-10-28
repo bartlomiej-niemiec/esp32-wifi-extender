@@ -7,7 +7,7 @@
 class MutexLockGuard
 {
     public:
-        MutexLockGuard (SemaphoreHandle_t mutex);
+        explicit MutexLockGuard (SemaphoreHandle_t mutex);
 
         ~MutexLockGuard();
     private:
@@ -15,6 +15,7 @@ class MutexLockGuard
         MutexLockGuard() = delete;
 
         SemaphoreHandle_t m_mutex;
+        bool m_locked;
 };
 
 

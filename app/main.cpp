@@ -2,7 +2,7 @@
 
 #include "wifi_extender_if/wifi_extender_factory.hpp"
 #include "wifi_extender_if/wifi_extender_if.hpp"
-#include "wifi_extender_if/wifi_extencer_scanner_types.hpp"
+#include "wifi_extender_if/wifi_extender_scanner_types.hpp"
 #include "nvs/nvs.hpp"
 
 #include "esp_log.h"
@@ -13,10 +13,12 @@
 class LogEventListener:
     public WifiExtender::EventListener
 {
-    void Callback(WifiExtender::WifiExtenderState event) override
-    {
-        ESP_LOGI("WifiExtender", "State: %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
-    }
+    public:
+
+        void Callback(WifiExtender::WifiExtenderState event) override
+        {
+            ESP_LOGI("WifiExtender", "State: %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
+        }
 };
 
 
@@ -30,7 +32,11 @@ extern "C" void app_main(void)
         static_cast<std::string>(DEFAULT_AP_PASSWORD)
     );
 
-    const StaConfig staConfig;
+    const StaConfig staConfig(
+        static_cast<std::string>(DEFAULT_STA_SSID),
+        static_cast<std::string>(DEFAULT_STA_PASSWORD)
+    );
+
     WifiExtenderConfig config(apConfig, staConfig);
     Nvs::Init();
     WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetWifiExtender();
@@ -46,12 +52,9 @@ extern "C" void app_main(void)
     static LogEventListener listener;
     rWifiExtender.RegisterListener(&listener);
     rWifiExtender.Startup(config);
-    while (true)
+
+    while(true)
     {
-        if (rWifiExtender.GetState() == WifiExtenderState::RUNNING)
-        {
-            pScanner->ScanFor(10);
-            break;
-        }
-    }
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    };
 }

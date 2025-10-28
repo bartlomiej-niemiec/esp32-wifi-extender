@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "wifi_extencer_scanner_types.hpp"
+#include "wifi_extender_scanner_types.hpp"
 
 namespace WifiExtender
 {
@@ -16,8 +16,7 @@ public:
 
     virtual ~WifiExtenderScannerIf() = default;
 
-    virtual bool ScanFor(const int & time_in_s,
-                        const ScanOptions& opts = {}) = 0;
+    virtual bool Scan(const ScanOptions& opts = {}) = 0;
 
     virtual bool CancelScan() = 0;
 

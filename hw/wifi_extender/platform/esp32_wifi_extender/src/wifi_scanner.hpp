@@ -1,7 +1,7 @@
 #ifndef WIFIEXTENDER_WIFISCANNER_HPP
 #define WIFIEXTENDER_WIFISCANNER_HPP
 
-#include "wifi_extender_if/wifi_extencer_scanner_types.hpp"
+#include "wifi_extender_if/wifi_extender_scanner_types.hpp"
 #include "esp_wifi.h"
 
 namespace WifiExtender
@@ -15,7 +15,9 @@ class WifiScanner
 
         bool StartScanFor(const ScanOptions& opts = {});
 
-        bool CancelScan(bool timerExpired);
+        bool CancelScan();
+
+        void CleanResults();
 
         void ScanningCompleteSignal();
 
@@ -29,9 +31,13 @@ class WifiScanner
 
         ScannerState m_State;
 
-        void CleanResults();
-
         AuthMode ToAuthMode(wifi_auth_mode_t mode);
+
+        esp_err_t StartPassiveScan(const ScanOptions& opts);
+
+        esp_err_t StartActiveScan(const ScanOptions& opts);
+
+        static constexpr uint32_t SCAN_TIME_PER_CHANNEL_PASSIVE_MS = 300;
     
 };
 

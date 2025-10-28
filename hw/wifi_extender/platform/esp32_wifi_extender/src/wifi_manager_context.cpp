@@ -19,6 +19,7 @@ WifiManagerContext::~WifiManagerContext()
 }
 
 void WifiManagerContext::SetStaConfigurationValid(const bool isStaConfValid){
+    ESP_LOGI("WifiAp", "%s", isStaConfValid ? "StaConfigValid" : "StaConfigNotValid");
     m_StaConfigurationValid = isStaConfValid;
 }
 

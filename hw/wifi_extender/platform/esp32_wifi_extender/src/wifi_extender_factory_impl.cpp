@@ -5,25 +5,19 @@
 
 #include <new>
 
-namespace Hw
-{
-
 namespace WifiExtender
 {
 
-WifiExtenderFactory::WifiExtenderBoundle WifiExtenderFactory::GetWifiExtenderBoundle()
+WifiExtenderIf & WifiExtenderFactory::GetWifiExtender()
 {
     static WifiExtenderIf * pWifiExtenderIf = nullptr;
     if (pWifiExtenderIf == nullptr)
     {
-        pWifiExtenderIf = new (std::nothrow) Hw::Platform::WifiExtender::WifiExtenderImpl();
+        pWifiExtenderIf = new (std::nothrow) WifiExtenderImpl();
     }
-
     assert(pWifiExtenderIf != nullptr);
 
-    return {.pWifiExtenderIf = pWifiExtenderIf, .pWifiExtenderScannerIf = nullptr};
-}
-
+    return *pWifiExtenderIf;
 }
 
 }

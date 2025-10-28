@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include <string>
 #include "wifi_extender_config.hpp"
-
-namespace Hw
-{
+#include "wifi_extender_scanner_if.hpp"
 
 namespace WifiExtender
 {
@@ -21,15 +19,15 @@ public:
 
     virtual bool RegisterListener(EventListener * pEventListener) = 0;
 
-    virtual WifiExtenderState GetState() = 0;
+    virtual WifiExtenderState GetState() const = 0;
 
     virtual bool Shutdown() = 0;
 
     virtual bool UpdateConfig(const WifiExtenderConfig & config) = 0;
 
+    virtual WifiExtenderScannerIf * GetScanner() = 0;
+
 };
- 
-}
 
 }
 

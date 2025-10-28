@@ -1,12 +1,6 @@
 #include "wifi_manager_context.hpp"
 #include "esp_log.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -25,6 +19,7 @@ WifiManagerContext::~WifiManagerContext()
 }
 
 void WifiManagerContext::SetStaConfigurationValid(const bool isStaConfValid){
+    ESP_LOGI("WifiAp", "%s", isStaConfValid ? "StaConfigValid" : "StaConfigNotValid");
     m_StaConfigurationValid = isStaConfValid;
 }
 
@@ -118,12 +113,5 @@ void WifiManagerContext::OnStaLostIp()
         m_WifiSta.SetState(WifiSta::State::DISCONNECTED);
     }
 }
-
-
-}
-
-
-}
-
 
 }

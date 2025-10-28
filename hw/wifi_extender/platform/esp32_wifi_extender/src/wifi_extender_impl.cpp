@@ -1,17 +1,23 @@
 #include "wifi_extender_impl.hpp"
-
-namespace Hw
-{
-
-namespace Platform
-{
+#include "utils/MutexLockGuard.hpp"
 
 namespace WifiExtender
 {
 
+WifiExtenderImpl::WifiExtenderImpl():
+        m_CurrentConfig(),
+        m_WifiManager(),
+        m_Semaphore()
+{
+    m_Semaphore = xSemaphoreCreateMutex();
+    assert(nullptr != m_Semaphore);
+}
+
+
 bool WifiExtenderImpl::Startup(const WifiExtenderConfig & config)
 {
-    if (m_WifiManager.GetState() == WifiExtenderState::STOPPED)
+    MutexLockGuard lockGuard(m_Semaphore);
+    if (m_WifiManager.IsStartupPossible())
     {
         if (m_WifiManager.Startup(config))
         {
@@ -29,11 +35,8 @@ bool WifiExtenderImpl::RegisterListener(EventListener * pEventListener)
 
 bool WifiExtenderImpl::Shutdown()
 {
-    if (m_WifiManager.GetState() == WifiExtenderState::CONNECTING ||
-        m_WifiManager.GetState() == WifiExtenderState::STA_CANNOT_CONNECT ||
-        m_WifiManager.GetState() == WifiExtenderState::RUNNING ||
-        m_WifiManager.GetState() == WifiExtenderState::STARTED
-    )
+    MutexLockGuard lockGuard(m_Semaphore);
+    if (m_WifiManager.IsShutdownPossible())
     {
         return m_WifiManager.Shutdown();
     }
@@ -42,7 +45,8 @@ bool WifiExtenderImpl::Shutdown()
 
 bool WifiExtenderImpl::UpdateConfig(const WifiExtenderConfig & config)
 {
-    if (m_WifiManager.GetState() <= WifiExtenderState::CONNECTING)
+    MutexLockGuard lockGuard(m_Semaphore);
+    if (m_WifiManager.IsUpdateConfigPossible() == false)
     {
         return false;
     }
@@ -67,13 +71,9 @@ bool WifiExtenderImpl::UpdateConfig(const WifiExtenderConfig & config)
     return false;
 }
 
-WifiExtenderState WifiExtenderImpl::GetState()
+WifiExtenderState WifiExtenderImpl::GetState() const
 {
     return m_WifiManager.GetState();
-}
-
-}
-
 }
 
 }

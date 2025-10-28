@@ -2,12 +2,6 @@
 #include "esp_wifi.h"
 #include "esp_log.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -136,12 +130,13 @@ void WifiManager::OnMessage(const MessageQueue::Message & msg)
     ESP_LOGI("WifiManager", "MsgEvent %s", MessageQueue::GetStringOfEventType(msg.event).data());
 
     Snapshot s = makeSnapshot();
-
+    printSnapshot(s);
+    
     auto dec = reduce(s, msg);
     if (dec.newState)
     {
         m_WifiManagerContext.m_WifiManagerState = dec.next;
-        ESP_LOGI("WifiManager", "Changing to state %s", Hw::WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(m_WifiManagerContext.m_WifiManagerState).data());
+        ESP_LOGI("WifiManager", "Changing to state %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(m_WifiManagerContext.m_WifiManagerState).data());
     }
     
     for (uint8_t i = 0; i < dec.count; ++i) {
@@ -173,20 +168,23 @@ void WifiManager::MaybeFinalize(const Snapshot& s)
 }
 
 WifiManager::WifiManager():
+    m_ScanFinishedCb(nullptr),
     m_pEventListener(nullptr),
     m_StartUpInProgress(false),
-    m_StaConnectionTimer(nullptr),
-    m_timerArgs()
+    m_ScanningActive(false),
+    m_ShutdownInProgress(false),
+    m_StaConnectionTimer(nullptr)
 {
 
     assert(esp_timer_init() != ESP_ERR_NO_MEM );
-    m_timerArgs.callback = RetryConnectToNetwork;
-    m_timerArgs.arg = this;
-    m_timerArgs.dispatch_method = ESP_TIMER_TASK;
-    m_timerArgs.name = "STA_CONNECTION_TIMER";
-    m_timerArgs.skip_unhandled_events = true;
+    esp_timer_create_args_t timerStaArgs;
+    timerStaArgs.callback = RetryConnectToNetwork;
+    timerStaArgs.arg = this;
+    timerStaArgs.dispatch_method = ESP_TIMER_TASK;
+    timerStaArgs.name = "STA_CONNECTION_TIMER";
+    timerStaArgs.skip_unhandled_events = true;
 
-    ESP_ERROR_CHECK(esp_timer_create(&m_timerArgs, &m_StaConnectionTimer));
+    ESP_ERROR_CHECK(esp_timer_create(&timerStaArgs, &m_StaConnectionTimer));
 
     assert(true == Init());
 
@@ -213,33 +211,30 @@ WifiManager::~WifiManager()
 
 bool WifiManager::Startup(const WifiExtenderConfig & config)
 {
-    bool res = false;
-    if (false == m_WifiManagerContext.m_PendingNewConfiguration && m_StartUpInProgress == false)
-    {
-        m_StartUpInProgress = true;
-        m_PendingConfig = config;
-        MessageQueue::Message msg(MessageQueue::EventType::StartReq, -1);
-        res = m_MessageQueue.Add(msg);
-    }
+    MessageQueue::Message msg(MessageQueue::EventType::StartReq, -1);
+    m_StartUpInProgress = true;
+    m_PendingConfig = config;
+    bool res = m_MessageQueue.Add(msg);
     return res;
 }
 
 bool WifiManager::Shutdown()
 {
     MessageQueue::Message msg(MessageQueue::EventType::StopReq, -1);
-    return m_MessageQueue.Add(msg);
+    m_ShutdownInProgress = true;
+    m_StartUpInProgress = false;
+    m_ScanningActive = false;
+    m_WifiManagerContext.m_PendingNewConfiguration = false;
+    bool res = m_MessageQueue.Add(msg);
+    return res;
 }
 
 bool WifiManager::UpdateConfig(const WifiExtenderConfig & config)
 {
-    bool res = false;
-    if (false == m_WifiManagerContext.m_PendingNewConfiguration && m_StartUpInProgress == false)
-    {
-        m_WifiManagerContext.m_PendingNewConfiguration = true;
-        m_PendingConfig = config;
-        MessageQueue::Message msg(MessageQueue::EventType::UpdateConfigReq, -1);
-        res = m_MessageQueue.Add(msg);
-    }
+    MessageQueue::Message msg(MessageQueue::EventType::UpdateConfigReq, -1);
+    m_WifiManagerContext.m_PendingNewConfiguration = true;
+    m_PendingConfig = config;
+    bool res = m_MessageQueue.Add(msg);
     return res;
 }
 
@@ -274,6 +269,7 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
             case WIFI_EVENT_STA_START:
             case WIFI_EVENT_STA_STOP:
             case WIFI_EVENT_STA_DISCONNECTED:
+            case WIFI_EVENT_SCAN_DONE:
             {
                 msg.event = MessageQueue::EventType::EspWifiEvent;
                 msg.espEventCode = event_id;
@@ -325,7 +321,7 @@ void WifiManager::StopStaBackoffTimer()
     }
 }
 
-WifiExtenderState WifiManager::GetState()
+WifiExtenderState WifiManager::GetState() const
 {
     return m_WifiManagerContext.m_WifiManagerState;
 }
@@ -333,13 +329,26 @@ WifiExtenderState WifiManager::GetState()
 WifiManager::Snapshot WifiManager::makeSnapshot() const
 {
     return {
-        m_WifiManagerContext.m_WifiManagerState,
-        m_WifiManagerContext.m_WifiAp.GetState(),
-        m_WifiManagerContext.m_WifiSta.GetState(),
-        m_WifiManagerContext.m_PendingNewConfiguration,
-        m_StartUpInProgress,
-        m_WifiManagerContext.m_StaConfigurationValid
+        .mgrState = m_WifiManagerContext.m_WifiManagerState,
+        .apState = m_WifiManagerContext.m_WifiAp.GetState(),
+        .staState = m_WifiManagerContext.m_WifiSta.GetState(),
+        .scanningActive = m_ScanningActive,
+        .updateConfig = m_WifiManagerContext.m_PendingNewConfiguration,
+        .startUpInProgress = m_StartUpInProgress,
+        .staCfgValid = m_PendingConfig.staConfig.IsValid()
     };
+}
+
+void WifiManager::printSnapshot(const WifiManager::Snapshot& s)
+{
+    ESP_LOGI("WifiExtender", "Snapshot:");
+    ESP_LOGI("WifiExtender", "WifiManagerState=%s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(s.mgrState).data());
+    ESP_LOGI("WifiExtender", "ApState=%i", static_cast<int>(s.apState));
+    ESP_LOGI("WifiExtender", "staState=%i", static_cast<int>(s.staState));
+    ESP_LOGI("WifiExtender", "scanningActive=%s", s.scanningActive ? "True" : "False");
+    ESP_LOGI("WifiExtender", "updateConfig=%s", s.updateConfig ? "True" : "False");
+    ESP_LOGI("WifiExtender", "startUpInProgress=%s", s.startUpInProgress ? "True" : "False");
+    ESP_LOGI("WifiExtender", "staCfgValid=%s", s.staCfgValid ? "True" : "False");
 }
 
 WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const MessageQueue::Message& msg) const
@@ -377,6 +386,31 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
         }
         break;
 
+        case MessageQueue::EventType::ScanStartReq:
+        {
+            if (s.mgrState == WifiExtenderState::STA_CANNOT_CONNECT)
+            {
+                push(d, Effect::StaDisconnect);
+                push(d, Effect::StopStaBackoffTimer);
+            }
+            push(d, Effect::ClearLastScanResults);
+            push(d, Effect::StartScan);
+        }
+        break;
+
+        case MessageQueue::EventType::ScanDone:
+        {
+            push(d, Effect::SignalThatScanCmpl);
+            push(d, Effect::NotifyScannerListener);
+        }
+        break;
+
+        case MessageQueue::EventType::CancelScanReq:
+        {
+            push(d, Effect::CancelScan);
+        }
+        break;
+
         case MessageQueue::EventType::EspWifiEvent:
         {
             switch (msg.espEventCode) {
@@ -405,6 +439,24 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                         push(d, Effect::NotifyListener);
                     }
                     break;
+                case WIFI_EVENT_SCAN_DONE:
+                {
+                    if (m_ScanningActive)
+                    {
+                        push(d, Effect::SignalThatScanCmpl);
+                        push(d, Effect::NotifyScannerListener);
+                    }
+                    else
+                    {
+                        push(d, Effect::ClearLastScanResults);
+                    }
+
+                    if (s.mgrState == WifiExtenderState::STA_CANNOT_CONNECT)
+                    {
+                        push(d, Effect::StartStaBackoffTimer);
+                    }
+                }
+                break;
         }
         }
         break;
@@ -420,6 +472,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                     push(d, Effect::EnableNat);
                     push(d, Effect::StopStaBackoffTimer);
                     push(d, Effect::NotifyListener);
+                    ESP_LOGI("WifiExtender", "Connected to AP");
                     break;
                 case IP_EVENT_STA_LOST_IP:
                     d.next = WifiExtenderState::CONNECTING;
@@ -427,6 +480,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                     push(d, Effect::DisableNat);
                     push(d, Effect::StartStaBackoffTimer);
                     push(d, Effect::NotifyListener);
+                    ESP_LOGI("WifiExtender", "Disconnected from AP");
                     break;
             }
         }
@@ -434,11 +488,16 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
 
         case MessageQueue::EventType::StaTimerReconnect:
         {
-            if (!s.updateConfig) {
-                d.next = WifiExtenderState::STA_CANNOT_CONNECT;
-                d.newState = true;
+            if (!s.updateConfig && !s.scanningActive) {
                 push(d, Effect::StaConnect);
                 push(d, Effect::StartStaBackoffTimer);
+                if (s.mgrState != WifiExtenderState::STA_CANNOT_CONNECT)
+                {
+                    d.next = WifiExtenderState::STA_CANNOT_CONNECT;
+                    d.newState = true;
+                    push(d, Effect::NotifyListener);
+                }
+                ESP_LOGI("WifiManager", "Attempting to connect to STA");
             }
         }
         break;
@@ -447,6 +506,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
         {
             d.next = WifiExtenderState::STOPPED;
             d.newState = true;
+            push(d, Effect::SetFalseShutdownFlag);
             push(d, Effect::NotifyListener);
         }
         default:
@@ -504,6 +564,12 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
         }
         break;
 
+        case Effect::StaDisconnect:
+        {
+            (void)esp_wifi_disconnect();
+        }
+        break;
+
         case Effect::SetDefaultNetIf:
         {
             m_WifiManagerContext.m_WifiSta.SetDefaultNetIf();
@@ -541,10 +607,53 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
         }
         break;
 
+        case Effect::StartScan:
+        {
+            m_WifiScanner.StartScanFor(m_WifiScanningOptions.opts);
+        }
+        break;
+
+        case Effect::CancelScan:
+        {
+            m_WifiScanner.CancelScan();
+            m_ScanningActive = false;
+        }
+        break;
+
+        case Effect::SignalThatScanCmpl:
+        {
+            m_WifiScanner.ScanningCompleteSignal();
+            m_ScanningActive = false;
+        }
+        break;
+
+        case Effect::ClearLastScanResults:
+        {
+            m_WifiScanner.CleanResults();
+        }
+        break;
+
         case Effect::NotifyListener:
-        if (nullptr != m_pEventListener)
+        if (m_pEventListener)
         {
             m_pEventListener->Callback(m_WifiManagerContext.m_WifiManagerState);
+        }
+        break;
+
+        case Effect::NotifyScannerListener:
+        {
+            if (m_ScanFinishedCb)
+            {
+                m_ScanFinishedCb();
+            }
+        }
+
+        case Effect::SetFalseShutdownFlag:
+        {
+            if (m_ShutdownInProgress)
+            {
+                m_ShutdownInProgress = false;
+            }
         }
         break;
 
@@ -552,9 +661,83 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
     }
 }
 
-
+bool WifiManager::Scan(const ScanOptions& opts)
+{
+    bool res = false;
+    if (IsScanningPossible())
+    {
+        m_WifiScanningOptions.opts = opts;
+        m_ScanningActive = true;
+        MessageQueue::Message msg(MessageQueue::EventType::ScanStartReq, -1);
+        res = m_MessageQueue.Add(msg);
+    }
+    return res;
 }
 
+bool WifiManager::CancelScan()
+{
+    bool res = false;
+    if (m_ScanningActive)
+    {
+        MessageQueue::Message msg(MessageQueue::EventType::CancelScanReq, -1);
+        res = m_MessageQueue.Add(msg);
+    }
+    return res;
+}
+
+ScannerState WifiManager::GetCurrentState()
+{
+    return m_WifiScanner.GetScannerState();
+}
+
+const std::vector<WifiNetwork> & WifiManager::GetResults() const
+{
+    return m_WifiScanner.GetResults();
+}
+ 
+void WifiManager::RegisterOnFinished(ScanFinishedCallback cb)
+{
+   assert(nullptr == m_ScanFinishedCb);
+   m_ScanFinishedCb = cb;
+}
+
+bool WifiManager::IsShutdownPossible() const
+{
+    const WifiExtenderState state = GetState();
+    return (false == m_ScanningActive && false == m_ShutdownInProgress) &&
+        (state == WifiExtenderState::CONNECTING ||
+        state == WifiExtenderState::STA_CANNOT_CONNECT ||
+        state == WifiExtenderState::RUNNING ||
+        state == WifiExtenderState::STARTED);
+}
+
+bool WifiManager::IsStartupPossible() const
+{
+    return (false == m_WifiManagerContext.m_PendingNewConfiguration &&
+            false == m_StartUpInProgress &&
+            false == m_ScanningActive &&
+            false == m_ShutdownInProgress) &&
+            (GetState() == WifiExtenderState::STOPPED);
+}
+
+bool WifiManager::IsUpdateConfigPossible() const
+{
+   return  (GetState() <= WifiExtenderState::CONNECTING) &&
+            (false == m_WifiManagerContext.m_PendingNewConfiguration &&
+            false == m_StartUpInProgress &&
+            false == m_ScanningActive && 
+            false == m_ShutdownInProgress);
+}
+
+bool WifiManager::IsScanningPossible()
+{
+    const WifiExtenderState state = GetState();
+    return (false == m_WifiManagerContext.m_PendingNewConfiguration &&
+            false == m_StartUpInProgress && 
+            false == m_ShutdownInProgress &&
+            false == m_ScanningActive) &&
+        (state == WifiExtenderState::STA_CANNOT_CONNECT ||
+        state == WifiExtenderState::RUNNING);
 }
 
 }

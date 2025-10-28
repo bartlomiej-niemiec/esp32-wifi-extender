@@ -4,12 +4,6 @@
 #include "wifi_extender_if/wifi_extender_config.hpp"
 #include "esp_netif.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -35,7 +29,7 @@ class WifiSta{
 
         bool Init();
 
-        bool SetConfig(const Hw::WifiExtender::StaConfig &sta_config);
+        bool SetConfig(const StaConfig &sta_config);
 
         esp_netif_dns_info_t GetDnsInfo();
 
@@ -54,12 +48,6 @@ class WifiSta{
         State m_State;
 };
 
-
 }
-
-}
-
-}
-
 
 #endif

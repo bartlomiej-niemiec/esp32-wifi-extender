@@ -4,20 +4,16 @@
 #include "esp_netif.h"
 #include "esp_wifi.h"
 #include "wifi_extender_if/wifi_extender_if.hpp"
+#include "wifi_extender_if/wifi_extender_scanner_if.hpp"
 
+
+#include "wifi_scanner.hpp"
 #include "wifi_manager_context.hpp"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
 #include <utility>
-#include <variant>
 #include <array>
-
-namespace Hw
-{
-
-namespace Platform
-{
 
 namespace WifiExtender
 {
@@ -30,6 +26,9 @@ class MessageQueue
                 StartReq,
                 UpdateConfigReq,
                 StopReq,
+                ScanStartReq,
+                CancelScanReq,
+                ScanDone,
                 EspWifiEvent,
                 EspIpEvent,
                 StaTimerReconnect,
@@ -47,6 +46,9 @@ class MessageQueue
                 case EventType::EspIpEvent: return "EspIpEvent event";
                 case EventType::StaTimerReconnect: return "StaTimerReconnect event";
                 case EventType::InternalStop: return "InternalStop event";
+                case EventType::ScanStartReq: return "ScanStartReq event";
+                case EventType::ScanDone: return "ScanDone event";
+                case EventType::CancelScanReq: return "ScanCancel event";
             }
 
             return "Unknown event";
@@ -98,13 +100,14 @@ class MessageQueue
         QueueHandle_t m_MessageQueue;
         StaticQueue_t m_QueueStorage;
 
-        static constexpr int MESSAGE_QUEUE_SIZE = 32;
+        static constexpr int MESSAGE_QUEUE_SIZE = 16;
 
         uint8_t m_MessageQueueBuffer[MESSAGE_QUEUE_SIZE * sizeof(Message)];
 };
 
 class WifiManager:
-    public WifiExtenderIf
+    public WifiExtenderIf,
+    public WifiExtenderScannerIf
 {
     public:
 
@@ -114,13 +117,34 @@ class WifiManager:
 
         bool Startup(const WifiExtenderConfig & config);
 
-        bool RegisterListener(Hw::WifiExtender::EventListener * pEventListener);
+        bool RegisterListener(EventListener * pEventListener);
 
         bool Shutdown();
 
         bool UpdateConfig(const WifiExtenderConfig & config);
 
-        Hw::WifiExtender::WifiExtenderState GetState();
+        WifiExtenderState GetState() const;
+
+        bool Scan(const ScanOptions& opts = {}) override;
+
+        bool CancelScan() override;
+
+        ScannerState GetCurrentState() override;
+
+        const std::vector<WifiNetwork> & GetResults() const override;    
+        
+        void RegisterOnFinished(ScanFinishedCallback cb) override;
+
+        WifiExtenderScannerIf * GetScanner()
+        {
+            return this;
+        }
+
+        bool IsShutdownPossible() const;
+
+        bool IsStartupPossible() const;
+
+        bool IsUpdateConfigPossible() const;
 
     private:
 
@@ -148,6 +172,20 @@ class WifiManager:
 
         WifiManagerContext m_WifiManagerContext;
 
+        WifiScanner m_WifiScanner;
+
+        bool IsScanningPossible();
+
+        struct WifiScanningConfig
+        {
+            int time_in_s;
+            ScanOptions opts;
+        };
+
+        WifiScanningConfig m_WifiScanningOptions;
+
+        ScanFinishedCallback m_ScanFinishedCb;
+
         WifiExtenderConfig m_PendingConfig;
 
         esp_event_handler_instance_t m_wifiAnyInst;
@@ -158,13 +196,18 @@ class WifiManager:
 
         bool m_StartUpInProgress;
 
+        bool m_ScanningActive;
+
+        bool m_ShutdownInProgress;
+
         struct Snapshot{
-            WifiExtenderState mgrState;
-            WifiAp::State apState;
-            WifiSta::State staState;
-            bool updateConfig;
-            bool startUpInProgress;
-            bool staCfgValid;
+            const WifiExtenderState mgrState;
+            const WifiAp::State apState;
+            const WifiSta::State staState;
+            const bool scanningActive;
+            const bool updateConfig;
+            const bool startUpInProgress;
+            const bool staCfgValid;
         };
 
         enum class Effect : uint8_t {
@@ -172,6 +215,7 @@ class WifiManager:
             ApplyConfig,
             WifiStart,
             WifiStop,
+            StaDisconnect,
             DisableNat,
             EnableNat,
             StaConnect,
@@ -179,7 +223,14 @@ class WifiManager:
             SetDefaultNetIf,
             StartStaBackoffTimer,
             StopStaBackoffTimer,
-            NotifyListener
+            StartScan,
+            StopScan,
+            CancelScan,
+            ClearLastScanResults,
+            SignalThatScanCmpl,
+            NotifyListener,
+            NotifyScannerListener,
+            SetFalseShutdownFlag
         };
 
         struct Decision{
@@ -198,6 +249,8 @@ class WifiManager:
         }
 
         Snapshot makeSnapshot() const;
+
+        void printSnapshot(const Snapshot& s);
 
         Decision reduce(const Snapshot& s, const MessageQueue::Message& msg) const;
 
@@ -221,14 +274,8 @@ class WifiManager:
 
         esp_timer_handle_t m_StaConnectionTimer;
 
-        esp_timer_create_args_t m_timerArgs;
-
 };
 
-
-}
-
-}
 
 }
 

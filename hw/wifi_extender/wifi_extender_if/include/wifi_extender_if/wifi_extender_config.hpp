@@ -5,9 +5,6 @@
 #include <string>
 #include <string_view>
 
-namespace Hw
-{
-
 namespace WifiExtender
 {
 
@@ -37,7 +34,7 @@ struct AccessPointConfig {
     };
 
     bool IsValid() const {
-        return this->operator!=(AccessPointConfig());
+        return !ssid.empty() && !password.empty();
     }
 
     std::string ssid;
@@ -74,7 +71,7 @@ struct StaConfig {
     };
 
     bool IsValid() const {
-        return this->operator!=(StaConfig());
+        return !ssid.empty() && !password.empty();
     }
 
 };
@@ -119,7 +116,7 @@ class WifiExtenderHelpers
 
 public:
 
-static const std::string_view WifiExtenderStaToString(WifiExtenderState & state)
+static const std::string_view WifiExtenderStaToString(const WifiExtenderState & state)
 {
     switch(state)
     {
@@ -185,8 +182,6 @@ class EventListener
 
 };
 
-
-}
 
 }
 

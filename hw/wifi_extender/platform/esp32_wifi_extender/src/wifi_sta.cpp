@@ -5,15 +5,8 @@
 #include <string.h>
 #include "esp_log.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
-
 
 WifiSta::WifiSta():
     m_sta_netif(nullptr),
@@ -33,10 +26,10 @@ bool WifiSta::Init()
     return true;
 }
 
-bool WifiSta::SetConfig(const Hw::WifiExtender::StaConfig &sta_config)
+bool WifiSta::SetConfig(const StaConfig &sta_config)
 {
     wifi_config_t sta_cfg = {};
-
+    sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
     memcpy(sta_cfg.sta.password, sta_config.password.data(), sta_config.password.length());
     memcpy(sta_cfg.sta.ssid, sta_config.ssid.data(), sta_config.ssid.length());
 
@@ -72,10 +65,6 @@ esp_netif_ip_info_t WifiSta::GetIpInfo()
     esp_netif_ip_info_t ip_info;
     esp_netif_get_ip_info(m_sta_netif, &ip_info);
     return ip_info;
-}
-
-}
-
 }
 
 }

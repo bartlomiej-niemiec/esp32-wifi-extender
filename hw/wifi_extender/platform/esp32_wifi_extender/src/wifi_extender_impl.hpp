@@ -3,17 +3,10 @@
 
 #include "wifi_extender_if/wifi_extender_if.hpp"
 #include "wifi_manager.hpp"
-
-namespace Hw
-{
-
-namespace Platform
-{
+#include "freertos/semphr.h"
 
 namespace WifiExtender
 {
-
-using namespace Hw::WifiExtender;
 
 class WifiExtenderImpl:
     public WifiExtenderIf
@@ -21,10 +14,7 @@ class WifiExtenderImpl:
 
 public:
 
-    WifiExtenderImpl():
-        m_CurrentConfig(),
-        m_WifiManager()
-    {};
+    WifiExtenderImpl();
 
     bool Startup(const WifiExtenderConfig & config);
 
@@ -34,18 +24,20 @@ public:
 
     bool RegisterListener(EventListener * pEventListener);
 
-    WifiExtenderState GetState();
+    WifiExtenderState GetState() const;
+
+    WifiExtenderScannerIf * GetScanner()
+    {
+        return &m_WifiManager;
+    }
 
 private:
 
     WifiExtenderConfig m_CurrentConfig;
     WifiManager m_WifiManager;
+    SemaphoreHandle_t m_Semaphore;
 };
 
-
-}
-
-}
 
 }
 

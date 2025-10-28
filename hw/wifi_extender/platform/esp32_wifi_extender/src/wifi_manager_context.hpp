@@ -7,16 +7,8 @@
 #include "esp_wifi.h"
 #include "wifi_extender_if/wifi_extender_if.hpp"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
-
-using namespace Hw::WifiExtender;
 
 struct WifiManagerContext
 {
@@ -62,10 +54,6 @@ struct WifiManagerContext
 
     bool m_StaConfigurationValid;
 };
-
-}
-
-}
 
 }
 

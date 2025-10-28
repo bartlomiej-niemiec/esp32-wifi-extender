@@ -4,12 +4,6 @@
 #include "wifi_extender_if/wifi_extender_config.hpp"
 #include "esp_netif_types.h"
 
-namespace Hw
-{
-
-namespace Platform
-{
-
 namespace WifiExtender
 {
 
@@ -23,7 +17,7 @@ class WifiAp{
 
         bool Init();
 
-        bool SetConfig(const Hw::WifiExtender::AccessPointConfig &ap_config);
+        bool SetConfig(const AccessPointConfig &ap_config);
 
         void SetUpDnsOnDhcpServer(esp_netif_dns_info_t  dnsInfo);
 
@@ -54,10 +48,6 @@ class WifiAp{
         static constexpr int DHCPS_OFFER_DNS = 0x02;
 };
 
-
-}
-
-}
 
 }
 

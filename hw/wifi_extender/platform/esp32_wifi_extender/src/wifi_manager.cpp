@@ -310,6 +310,9 @@ void WifiManager::RetryConnectToNetwork(void *arg)
 
 void WifiManager::StartStaBackoffTimer()
 {
+    if (esp_timer_is_active(m_StaConnectionTimer)) {
+        ESP_ERROR_CHECK(esp_timer_stop(m_StaConnectionTimer));
+    }
     ESP_ERROR_CHECK(esp_timer_start_once(m_StaConnectionTimer, TIMER_EXPIRED_TIME_US));
 }
 

@@ -12,6 +12,8 @@ set(EXTRA_COMPONENT_DIRS
     ${CMAKE_SOURCE_DIR}/hw/wifi_extender/platform/esp32_wifi_extender
     ${CMAKE_SOURCE_DIR}/hw/nvs/nvs_interface
     ${CMAKE_SOURCE_DIR}/hw/nvs/platform/esp32_nvs_flash
+    ${CMAKE_SOURCE_DIR}/hw/rgbled/rgbled_if
+    ${CMAKE_SOURCE_DIR}/hw/rgbled/platform/sk68xxminihs
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

@@ -27,43 +27,43 @@ class LogEventListener:
             {  
                 case WifiExtender::WifiExtenderState::STOPPED:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::RED));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::RED));
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::STARTED:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::BLUE));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::BLUE));
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::CONNECTING:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::WHITE));
+                    m_Led.Blink(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::BLUE), BLINK_FREQ_10HZ);
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::RUNNING:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::GREEN));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::GREEN));
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::STOPPING:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PINK));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PINK));
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::NEW_CONFIGURATION_PENDING:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PURPLE));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PURPLE));
                 }
                 break;
 
                 case WifiExtender::WifiExtenderState::STA_CANNOT_CONNECT:
                 {
-                    m_Led.SetColor(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::YELLOW));
+                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::YELLOW));
                 }
                 break;
 
@@ -75,6 +75,7 @@ class LogEventListener:
     private:
         RgbLed::RgbLedIf & m_Led;
         RgbLed::Color m_rgbColor;
+        static constexpr uint32_t BLINK_FREQ_10HZ = 10;
 
 
 };

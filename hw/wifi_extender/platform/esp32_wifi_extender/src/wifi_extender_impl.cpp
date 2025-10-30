@@ -71,6 +71,19 @@ bool WifiExtenderImpl::UpdateConfig(const WifiExtenderConfig & config)
     return false;
 }
 
+bool WifiExtenderImpl::TryToReconnect()
+{
+    MutexLockGuard lockGuard(m_Semaphore);
+    if (GetState() == WifiExtenderState::STA_CANNOT_CONNECT)
+    {
+        if (m_WifiManager.TryToReconnect())
+        {
+            return m_WifiManager.Shutdown();
+        }
+    }
+    return false;
+}
+
 WifiExtenderState WifiExtenderImpl::GetState() const
 {
     return m_WifiManager.GetState();

@@ -1,4 +1,5 @@
 #include "rgbled_sk68_impl.hpp"
+#include "utils/MutexLockGuard.hpp"
 
 namespace RgbLed
 {
@@ -13,8 +14,15 @@ const rmt_symbol_word_t Sk68xxminiHsImpl::m_reset_sym = {
 Sk68xxminiHsImpl::Sk68xxminiHsImpl():
     m_txChannel(nullptr),
     m_encoderHandle(nullptr),
-    m_resetEncoderHandle(nullptr)
+    m_resetEncoderHandle(nullptr),
+    m_BlinkState(false),
+    m_BlinkyColor{},
+    m_BlinkyTimer(nullptr),
+    m_Semaphore(nullptr)
 {
+    m_Semaphore = xSemaphoreCreateMutex();
+    assert(nullptr != m_Semaphore);
+
     rmt_tx_channel_config_t tx_chan_config = {};
     tx_chan_config.clk_src = RMT_CLK_SRC_DEFAULT;   // select source clock
     tx_chan_config.gpio_num = GPIO_PIN_NUM;         // GPIO number
@@ -50,9 +58,22 @@ Sk68xxminiHsImpl::Sk68xxminiHsImpl():
 
     ESP_ERROR_CHECK(rmt_new_copy_encoder(&copyConfig, &m_resetEncoderHandle));
 
+    esp_err_t timerInitErr = esp_timer_init();
+    const bool isTimerInitialized = (timerInitErr == ESP_OK || timerInitErr == ESP_ERR_INVALID_STATE);
+    assert(true == isTimerInitialized);
+
+    esp_timer_create_args_t timerArgs = {
+        .callback = BlinkTimerCallback,
+        .arg = this,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "RGB Blinky timer",
+        .skip_unhandled_events = false
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&timerArgs, &m_BlinkyTimer));
+
 }
 
-void Sk68xxminiHsImpl::SetColor(const Color color)
+void Sk68xxminiHsImpl::SetColor(const Color & color)
 {
     uint8_t grb[3] = { color.g, color.r, color.b };
 
@@ -60,15 +81,44 @@ void Sk68xxminiHsImpl::SetColor(const Color color)
     tx_cfg.loop_count = 0;                 // bez loopów
     tx_cfg.flags.eot_level = 0;
 
-    // dane (bytes_encoder)
     ESP_ERROR_CHECK(rmt_transmit(m_txChannel, m_encoderHandle, grb, sizeof(grb), &tx_cfg));
 
-    // reset (copy_encoder + symbol)
     ESP_ERROR_CHECK(rmt_transmit(m_txChannel, m_resetEncoderHandle, &m_reset_sym, sizeof(m_reset_sym), &tx_cfg));
 
-    // Poczekaj aż wszystko się wyśle (opcjonalnie, ale praktyczne)
     ESP_ERROR_CHECK(rmt_tx_wait_all_done(m_txChannel, -1));
+}
 
+void Sk68xxminiHsImpl::BlinkTimerCallback(void * pArg)
+{
+    Sk68xxminiHsImpl * sk68xxminihs = reinterpret_cast<Sk68xxminiHsImpl *>(pArg);
+    const Color color = sk68xxminihs->m_BlinkState ? sk68xxminihs->m_BlinkyColor : offColor;
+    sk68xxminihs->SetColor(color);
+    sk68xxminihs->m_BlinkState = !sk68xxminihs->m_BlinkState;
+}
+
+void Sk68xxminiHsImpl::Solid(const Color color)
+{
+    MutexLockGuard lockGuard(m_Semaphore);
+    StopBlinkyTimer();
+    SetColor(color);
+}
+
+void Sk68xxminiHsImpl::Blink(const Color color, const uint32_t frequency_hz)
+{
+    MutexLockGuard lockGuard(m_Semaphore);
+    StopBlinkyTimer();
+    m_BlinkyColor = color;
+    m_BlinkState = !m_BlinkState;
+    const uint64_t periodUs = (1.0 / static_cast<double>(frequency_hz)) * 1e6;
+    esp_timer_start_periodic(m_BlinkyTimer, periodUs);
+}
+
+void Sk68xxminiHsImpl::StopBlinkyTimer()
+{
+    if (esp_timer_is_active(m_BlinkyTimer))
+    {
+        esp_timer_stop(m_BlinkyTimer);
+    }
 }
 
 

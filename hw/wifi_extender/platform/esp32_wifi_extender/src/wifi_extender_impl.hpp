@@ -24,6 +24,8 @@ public:
 
     bool RegisterListener(EventListener * pEventListener);
 
+    bool TryToReconnect();
+
     WifiExtenderState GetState() const;
 
     WifiExtenderScannerIf * GetScanner()

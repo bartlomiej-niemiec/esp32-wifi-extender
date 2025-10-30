@@ -35,7 +35,9 @@ enum class ColorType {
 
 class RgbLedIf {
     public:
-        virtual void SetColor(const Color) = 0;
+        virtual void Solid(const Color) = 0;
+
+        virtual void Blink(const Color, const uint32_t frequency_hz) = 0;
 };
 
 class RgbLedFactory {
@@ -46,7 +48,7 @@ class RgbLedFactory {
 class ColorCreator{
     public:
 
-        static Color CreateColor(ColorType color){
+        static constexpr Color CreateColor(ColorType color){
             switch (color)
             {
                 case ColorType::RED: return {255, 0, 0};

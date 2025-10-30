@@ -123,6 +123,8 @@ class WifiManager:
 
         bool UpdateConfig(const WifiExtenderConfig & config);
 
+        bool TryToReconnect();
+        
         WifiExtenderState GetState() const;
 
         bool Scan(const ScanOptions& opts = {}) override;
@@ -200,6 +202,9 @@ class WifiManager:
 
         bool m_ShutdownInProgress;
 
+        static constexpr uint8_t RECONNECT_COUNTER_ATTEMPTS_COUNT = 3;
+        uint8_t m_ReconnectCounterVal;
+
         struct Snapshot{
             const WifiExtenderState mgrState;
             const WifiAp::State apState;
@@ -208,6 +213,7 @@ class WifiManager:
             const bool updateConfig;
             const bool startUpInProgress;
             const bool staCfgValid;
+            const uint8_t reconnectCounterVal;
         };
 
         enum class Effect : uint8_t {

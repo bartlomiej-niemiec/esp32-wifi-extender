@@ -6,6 +6,8 @@
 #include "nvs/nvs.hpp"
 
 #include "rgbled_if/rgbled_if.hpp"
+#include "rgbled_if/rgbled_factory.hpp"
+#include "rgbled_if/rgbled_utils.hpp"
 
 #include "esp_log.h"
 
@@ -17,67 +19,10 @@ class LogEventListener:
 {
     public:
 
-        LogEventListener(RgbLed::RgbLedIf & led):
-            m_Led(led){}
-
         void Callback(WifiExtender::WifiExtenderState event) override
         {
             ESP_LOGI("WifiExtender", "State: %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
-            switch (event)
-            {  
-                case WifiExtender::WifiExtenderState::STOPPED:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::RED));
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::STARTED:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::BLUE));
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::CONNECTING:
-                {
-                    m_Led.Blink(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::BLUE), BLINK_FREQ_10HZ);
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::RUNNING:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::GREEN));
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::STOPPING:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PINK));
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::NEW_CONFIGURATION_PENDING:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::PURPLE));
-                }
-                break;
-
-                case WifiExtender::WifiExtenderState::STA_CANNOT_CONNECT:
-                {
-                    m_Led.Solid(RgbLed::ColorCreator::CreateColor(RgbLed::ColorType::YELLOW));
-                }
-                break;
-
-                default:
-                    break;
-            }
         }
-
-    private:
-        RgbLed::RgbLedIf & m_Led;
-        RgbLed::Color m_rgbColor;
-        static constexpr uint32_t BLINK_FREQ_10HZ = 10;
-
-
 };
 
 
@@ -85,9 +30,7 @@ extern "C" void app_main(void)
 {
     using namespace Hw::Nvs;
     using namespace WifiExtender;
-
-    RgbLed::RgbLedIf & rgbled = RgbLed::RgbLedFactory::GetRgbLed();
-
+    
     const AccessPointConfig apConfig(
         static_cast<std::string>(DEFAULT_AP_SSID),
         static_cast<std::string>(DEFAULT_AP_PASSWORD)
@@ -110,7 +53,7 @@ extern "C" void app_main(void)
         }
     });
     assert(nullptr != pScanner);
-    static LogEventListener listener(rgbled);
+    static LogEventListener listener;
     rWifiExtender.RegisterListener(&listener);
     rWifiExtender.Startup(config);
     while(true)

@@ -11,7 +11,7 @@ const rmt_symbol_word_t Sk68xxminiHsImpl::m_reset_sym = {
             .level1 = 0
 };
 
-Sk68xxminiHsImpl::Sk68xxminiHsImpl():
+Sk68xxminiHsImpl::Sk68xxminiHsImpl(const uint32_t gpio_pin_num):
     m_txChannel(nullptr),
     m_encoderHandle(nullptr),
     m_resetEncoderHandle(nullptr),
@@ -23,9 +23,11 @@ Sk68xxminiHsImpl::Sk68xxminiHsImpl():
     m_Semaphore = xSemaphoreCreateMutex();
     assert(nullptr != m_Semaphore);
 
+    assert(gpio_pin_num < static_cast<uint32_t>(GPIO_NUM_MAX));
+    
     rmt_tx_channel_config_t tx_chan_config = {};
     tx_chan_config.clk_src = RMT_CLK_SRC_DEFAULT;   // select source clock
-    tx_chan_config.gpio_num = GPIO_PIN_NUM;         // GPIO number
+    tx_chan_config.gpio_num = static_cast<gpio_num_t>(gpio_pin_num);         // GPIO number
     tx_chan_config.mem_block_symbols = 64;          // memory block size, 64 * 4 = 256 Bytes
     tx_chan_config.resolution_hz = 20 * 1000 * 1000;// 20 MHz tick resolution
     tx_chan_config.trans_queue_depth = 2;           // set the number of transactions that can pend in the background
@@ -73,7 +75,7 @@ Sk68xxminiHsImpl::Sk68xxminiHsImpl():
 
 }
 
-void Sk68xxminiHsImpl::SetColor(const Color & color)
+void Sk68xxminiHsImpl::SetColor(const RgbColor & color)
 {
     uint8_t grb[3] = { color.g, color.r, color.b };
 
@@ -91,19 +93,18 @@ void Sk68xxminiHsImpl::SetColor(const Color & color)
 void Sk68xxminiHsImpl::BlinkTimerCallback(void * pArg)
 {
     Sk68xxminiHsImpl * sk68xxminihs = reinterpret_cast<Sk68xxminiHsImpl *>(pArg);
-    const Color color = sk68xxminihs->m_BlinkState ? sk68xxminihs->m_BlinkyColor : offColor;
-    sk68xxminihs->SetColor(color);
+    sk68xxminihs->SetColor(sk68xxminihs->m_BlinkState ? sk68xxminihs->m_BlinkyColor : offColor);
     sk68xxminihs->m_BlinkState = !sk68xxminihs->m_BlinkState;
 }
 
-void Sk68xxminiHsImpl::Solid(const Color color)
+void Sk68xxminiHsImpl::Solid(const RgbColor color)
 {
     MutexLockGuard lockGuard(m_Semaphore);
     StopBlinkyTimer();
     SetColor(color);
 }
 
-void Sk68xxminiHsImpl::Blink(const Color color, const uint32_t frequency_hz)
+void Sk68xxminiHsImpl::Blink(const RgbColor color, const uint32_t frequency_hz)
 {
     MutexLockGuard lockGuard(m_Semaphore);
     StopBlinkyTimer();

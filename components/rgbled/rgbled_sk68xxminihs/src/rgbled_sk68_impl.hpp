@@ -14,27 +14,37 @@ class Sk68xxminiHsImpl:
     public RgbLedIf
 {
     public:
-        Sk68xxminiHsImpl();
+        Sk68xxminiHsImpl(const uint32_t gpio_pin_num);
 
-        void Solid(const Color);
+        void Solid(const RgbColor);
 
-        void Blink(const Color, const uint32_t frequency_hz);
+        void Blink(const RgbColor, const uint32_t frequency_hz);
 
     private:
 
-        static const gpio_num_t GPIO_PIN_NUM = GPIO_NUM_38;
         static const rmt_symbol_word_t m_reset_sym;
+
         rmt_channel_handle_t m_txChannel;
+
         rmt_encoder_handle_t m_encoderHandle;
+
         rmt_encoder_handle_t m_resetEncoderHandle;
+
         bool m_BlinkState;
-        Color m_BlinkyColor;
+
+        RgbColor m_BlinkyColor;
+
         esp_timer_handle_t m_BlinkyTimer;
+
         SemaphoreHandle_t m_Semaphore;
+
         static void BlinkTimerCallback(void * pArg);
-        void SetColor(const Color & color);
+
+        void SetColor(const RgbColor & color);
+
         void StopBlinkyTimer();
-        static constexpr Color offColor = ColorCreator::CreateColor(ColorType::BLACK);
+
+        static constexpr RgbColor offColor = {0, 0, 0};
 };
 
 }

@@ -5,6 +5,10 @@
 #include "wifi_extender_if/wifi_extender_scanner_types.hpp"
 #include "nvs/nvs.hpp"
 
+#include "rgbled_if/rgbled_if.hpp"
+#include "rgbled_if/rgbled_factory.hpp"
+#include "rgbled_if/rgbled_utils.hpp"
+
 #include "esp_log.h"
 
 #include "config.hpp"
@@ -26,7 +30,7 @@ extern "C" void app_main(void)
 {
     using namespace Hw::Nvs;
     using namespace WifiExtender;
-
+    
     const AccessPointConfig apConfig(
         static_cast<std::string>(DEFAULT_AP_SSID),
         static_cast<std::string>(DEFAULT_AP_PASSWORD)
@@ -52,9 +56,8 @@ extern "C" void app_main(void)
     static LogEventListener listener;
     rWifiExtender.RegisterListener(&listener);
     rWifiExtender.Startup(config);
-
     while(true)
     {
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        vTaskDelay(pdMS_TO_TICKS(1500));
     };
 }

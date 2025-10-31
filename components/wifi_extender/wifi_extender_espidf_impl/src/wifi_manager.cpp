@@ -173,6 +173,7 @@ WifiManager::WifiManager():
     m_StartUpInProgress(false),
     m_ScanningActive(false),
     m_ShutdownInProgress(false),
+    m_ReconnectCounterVal(0),
     m_StaConnectionTimer(nullptr)
 {
 
@@ -236,6 +237,17 @@ bool WifiManager::UpdateConfig(const WifiExtenderConfig & config)
     m_PendingConfig = config;
     bool res = m_MessageQueue.Add(msg);
     return res;
+}
+
+bool WifiManager::TryToReconnect()
+{   
+    if (m_ReconnectCounterVal == RECONNECT_COUNTER_ATTEMPTS_COUNT)
+    {
+        m_ReconnectCounterVal = 0;
+        MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
+        return m_MessageQueue.Add(msg);
+    }
+    return false;
 }
 
 bool WifiManager::RegisterListener(EventListener * pEventListener)
@@ -302,14 +314,25 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
 
 void WifiManager::RetryConnectToNetwork(void *arg)
 {
-    ESP_LOGI("WifiExtender", "Timer expired..");
     WifiManager* pWifiManager = reinterpret_cast<WifiManager*>(arg);
-    MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
-    pWifiManager->m_MessageQueue.Add(msg);
+    if (pWifiManager->m_ReconnectCounterVal < RECONNECT_COUNTER_ATTEMPTS_COUNT)
+    {
+        pWifiManager->m_ReconnectCounterVal++;
+        ESP_LOGI("WifiExtender", "Timer expired attempt: %i", pWifiManager->m_ReconnectCounterVal);
+        MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
+        pWifiManager->m_MessageQueue.Add(msg);
+    }
+    else
+    {
+        ESP_LOGI("WifiExtender", "Timer expired attempt limit reached");
+    }
 }
 
 void WifiManager::StartStaBackoffTimer()
 {
+    if (esp_timer_is_active(m_StaConnectionTimer)) {
+        ESP_ERROR_CHECK(esp_timer_stop(m_StaConnectionTimer));
+    }
     ESP_ERROR_CHECK(esp_timer_start_once(m_StaConnectionTimer, TIMER_EXPIRED_TIME_US));
 }
 
@@ -430,7 +453,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                     }
                     break;  
                 case WIFI_EVENT_STA_START:
-                    if (s.staCfgValid)
+                    if (s.staCfgValid && s.mgrState !=  WifiExtenderState::STA_CANNOT_CONNECT)
                     {
                         d.next = WifiExtenderState::CONNECTING;
                         d.newState = true;
@@ -475,12 +498,15 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
                     ESP_LOGI("WifiExtender", "Connected to AP");
                     break;
                 case IP_EVENT_STA_LOST_IP:
-                    d.next = WifiExtenderState::CONNECTING;
-                    d.newState = true;
-                    push(d, Effect::DisableNat);
-                    push(d, Effect::StartStaBackoffTimer);
-                    push(d, Effect::NotifyListener);
-                    ESP_LOGI("WifiExtender", "Disconnected from AP");
+                    if (s.mgrState == WifiExtenderState::RUNNING)
+                    {
+                        d.next = WifiExtenderState::CONNECTING;
+                        d.newState = true;
+                        push(d, Effect::DisableNat);
+                        push(d, Effect::StartStaBackoffTimer);
+                        push(d, Effect::NotifyListener);
+                        ESP_LOGI("WifiExtender", "Disconnected from AP");
+                    }
                     break;
             }
         }

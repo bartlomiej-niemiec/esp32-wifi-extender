@@ -23,6 +23,8 @@ public:
 
     virtual bool Shutdown() = 0;
 
+    virtual bool TryToReconnect() = 0;
+
     virtual bool UpdateConfig(const WifiExtenderConfig & config) = 0;
 
     virtual WifiExtenderScannerIf * GetScanner() = 0;

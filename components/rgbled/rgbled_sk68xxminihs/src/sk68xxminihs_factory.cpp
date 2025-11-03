@@ -18,16 +18,12 @@ RgbLedIf * RgbLedFactory::Create(const uint32_t gpio_pin_num)
 {
     std::unordered_map<uint32_t, RgbLedIf *>::iterator it;
     it = m_RgbLedIfMap.find(gpio_pin_num);
-    RgbLedIf * pRgbLedIf = nullptr;
+    RgbLedIf * pRgbLedIf = it->second;
     if (it == m_RgbLedIfMap.end())
     {
         pRgbLedIf = new (std::nothrow) Sk68xxminiHsImpl(gpio_pin_num);
         assert(nullptr != pRgbLedIf);
         m_RgbLedIfMap[gpio_pin_num] = pRgbLedIf;
-    }
-    else
-    {
-        pRgbLedIf = it->second;
     }
 
     return pRgbLedIf;

@@ -71,7 +71,7 @@ static void printNetwork(const WifiNetwork & netowrk)
     ESP_LOGI("WifiScanner", "Network auth mode: %s", getAuthString(netowrk.auth).data());
 }
 
-static const std::string_view getScannerStateString(ScannerState state)
+static constexpr std::string_view getScannerStateString(ScannerState state)
 {
     switch (state)
     {
@@ -89,8 +89,6 @@ struct ScanOptions {
     uint8_t  dwell_ms   = 120;
     bool     show_hidden= true;
 };
-
-using ScanFinishedCallback = std::function<void()>;
  
 }
 

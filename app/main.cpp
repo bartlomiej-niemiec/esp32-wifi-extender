@@ -1,5 +1,6 @@
 #include "freertos/FreeRTOS.h"
 
+#include "wifi_extender_if/wifi_extender_config.hpp"
 #include "wifi_extender_if/wifi_extender_factory.hpp"
 #include "wifi_extender_if/wifi_extender_if.hpp"
 #include "wifi_extender_if/wifi_extender_scanner_types.hpp"
@@ -45,11 +46,14 @@ extern "C" void app_main(void)
     Nvs::Init();
     WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetWifiExtender();
     WifiExtenderScannerIf * pScanner = rWifiExtender.GetScanner();
-    pScanner->RegisterOnFinished([pScanner](){
-        const std::vector<WifiNetwork> & networks = pScanner->GetResults();
-        for (const WifiNetwork & n : networks)
+    pScanner->RegisterStateListener([pScanner](ScannerState state){
+        if (state == ScannerState::Done)
         {
-            printNetwork(n);
+            const std::vector<WifiNetwork> & networks = pScanner->GetResults();
+            for (const WifiNetwork & n : networks)
+            {
+                printNetwork(n);
+            }
         }
     });
     assert(nullptr != pScanner);

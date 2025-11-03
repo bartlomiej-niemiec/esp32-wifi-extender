@@ -14,6 +14,8 @@ class WifiExtenderScannerIf{
 
 public:
 
+    using ScannerStateListener = std::function<void(ScannerState state)>;
+
     virtual ~WifiExtenderScannerIf() = default;
 
     virtual bool Scan(const ScanOptions& opts = {}) = 0;
@@ -24,7 +26,7 @@ public:
 
     virtual const std::vector<WifiNetwork> & GetResults() const = 0;   
     
-    virtual void RegisterOnFinished(ScanFinishedCallback cb) = 0;
+    virtual void RegisterStateListener(ScannerStateListener cb) = 0;
 
 };
  

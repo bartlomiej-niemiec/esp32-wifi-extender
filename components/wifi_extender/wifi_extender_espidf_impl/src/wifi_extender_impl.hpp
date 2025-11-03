@@ -2,6 +2,7 @@
 #define HW_WIFIEXTENDER_WIFIEXTENDERIMPL_HPP
 
 #include "wifi_extender_if/wifi_extender_if.hpp"
+#include "wifi_extender_if/wifi_extender_config.hpp"
 #include "wifi_manager.hpp"
 #include "freertos/semphr.h"
 

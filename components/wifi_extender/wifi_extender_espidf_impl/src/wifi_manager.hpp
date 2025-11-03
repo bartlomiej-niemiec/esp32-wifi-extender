@@ -28,7 +28,6 @@ class MessageQueue
                 StopReq,
                 ScanStartReq,
                 CancelScanReq,
-                ScanDone,
                 EspWifiEvent,
                 EspIpEvent,
                 StaTimerReconnect,
@@ -47,7 +46,6 @@ class MessageQueue
                 case EventType::StaTimerReconnect: return "StaTimerReconnect event";
                 case EventType::InternalStop: return "InternalStop event";
                 case EventType::ScanStartReq: return "ScanStartReq event";
-                case EventType::ScanDone: return "ScanDone event";
                 case EventType::CancelScanReq: return "ScanCancel event";
             }
 
@@ -135,7 +133,7 @@ class WifiManager:
 
         const std::vector<WifiNetwork> & GetResults() const override;    
         
-        void RegisterOnFinished(ScanFinishedCallback cb) override;
+        void RegisterStateListener(ScannerStateListener cb) override;
 
         WifiExtenderScannerIf * GetScanner()
         {
@@ -186,15 +184,15 @@ class WifiManager:
 
         WifiScanningConfig m_WifiScanningOptions;
 
-        ScanFinishedCallback m_ScanFinishedCb;
-
         WifiExtenderConfig m_PendingConfig;
 
         esp_event_handler_instance_t m_wifiAnyInst;
 
         esp_event_handler_instance_t m_ipAnyInst;
 
-        EventListener * m_pEventListener;
+        std::vector<ScannerStateListener> m_WifiScannerStateListeners;
+
+        std::vector<EventListener *> m_WifiExtenderStateListeners;
 
         bool m_StartUpInProgress;
 
@@ -209,6 +207,7 @@ class WifiManager:
             const WifiExtenderState mgrState;
             const WifiAp::State apState;
             const WifiSta::State staState;
+            const ScannerState scannerState;
             const bool scanningActive;
             const bool updateConfig;
             const bool startUpInProgress;

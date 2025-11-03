@@ -1,4 +1,5 @@
 #include "wifi_manager.hpp"
+#include "wifi_extender_if/wifi_extender_config.hpp"
 #include "esp_wifi.h"
 #include "esp_log.h"
 
@@ -168,8 +169,8 @@ void WifiManager::MaybeFinalize(const Snapshot& s)
 }
 
 WifiManager::WifiManager():
-    m_ScanFinishedCb(nullptr),
-    m_pEventListener(nullptr),
+    m_WifiScannerStateListeners{},
+    m_WifiExtenderStateListeners{},
     m_StartUpInProgress(false),
     m_ScanningActive(false),
     m_ShutdownInProgress(false),
@@ -252,8 +253,8 @@ bool WifiManager::TryToReconnect()
 
 bool WifiManager::RegisterListener(EventListener * pEventListener)
 {
-    assert(m_pEventListener == nullptr);
-    m_pEventListener = pEventListener;
+    assert(pEventListener != nullptr);
+    m_WifiExtenderStateListeners.emplace_back(pEventListener);
     return true;
 }
 
@@ -342,6 +343,7 @@ void WifiManager::StopStaBackoffTimer()
     {
         ESP_ERROR_CHECK(esp_timer_stop(m_StaConnectionTimer));
     }
+    m_ReconnectCounterVal = 0;
 }
 
 WifiExtenderState WifiManager::GetState() const
@@ -355,10 +357,11 @@ WifiManager::Snapshot WifiManager::makeSnapshot() const
         .mgrState = m_WifiManagerContext.m_WifiManagerState,
         .apState = m_WifiManagerContext.m_WifiAp.GetState(),
         .staState = m_WifiManagerContext.m_WifiSta.GetState(),
+        .scannerState = m_WifiScanner.GetScannerState(),
         .scanningActive = m_ScanningActive,
         .updateConfig = m_WifiManagerContext.m_PendingNewConfiguration,
         .startUpInProgress = m_StartUpInProgress,
-        .staCfgValid = m_PendingConfig.staConfig.IsValid()
+        .staCfgValid = m_WifiManagerContext.m_StaConfigurationValid
     };
 }
 
@@ -368,6 +371,7 @@ void WifiManager::printSnapshot(const WifiManager::Snapshot& s)
     ESP_LOGI("WifiExtender", "WifiManagerState=%s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(s.mgrState).data());
     ESP_LOGI("WifiExtender", "ApState=%i", static_cast<int>(s.apState));
     ESP_LOGI("WifiExtender", "staState=%i", static_cast<int>(s.staState));
+    ESP_LOGI("WifiExtender", "scannerState=%s", getScannerStateString(s.scannerState).data());
     ESP_LOGI("WifiExtender", "scanningActive=%s", s.scanningActive ? "True" : "False");
     ESP_LOGI("WifiExtender", "updateConfig=%s", s.updateConfig ? "True" : "False");
     ESP_LOGI("WifiExtender", "startUpInProgress=%s", s.startUpInProgress ? "True" : "False");
@@ -418,12 +422,6 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
             }
             push(d, Effect::ClearLastScanResults);
             push(d, Effect::StartScan);
-        }
-        break;
-
-        case MessageQueue::EventType::ScanDone:
-        {
-            push(d, Effect::SignalThatScanCmpl);
             push(d, Effect::NotifyScannerListener);
         }
         break;
@@ -431,6 +429,7 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
         case MessageQueue::EventType::CancelScanReq:
         {
             push(d, Effect::CancelScan);
+            push(d, Effect::NotifyScannerListener);
         }
         break;
 
@@ -563,6 +562,7 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
         case Effect::WifiStart:
         {
             ESP_ERROR_CHECK(esp_wifi_start());
+            m_ReconnectCounterVal = 0;
         }
         break;
 
@@ -660,19 +660,20 @@ void WifiManager::runEffect(Effect e, const MessageQueue::Message& m)
         break;
 
         case Effect::NotifyListener:
-        if (m_pEventListener)
+        for (auto & listener : m_WifiExtenderStateListeners)
         {
-            m_pEventListener->Callback(m_WifiManagerContext.m_WifiManagerState);
+            listener->Callback(GetState());
         }
         break;
 
         case Effect::NotifyScannerListener:
         {
-            if (m_ScanFinishedCb)
+            for (auto & listener : m_WifiScannerStateListeners)
             {
-                m_ScanFinishedCb();
+                listener(m_WifiScanner.GetScannerState());
             }
         }
+        break;
 
         case Effect::SetFalseShutdownFlag:
         {
@@ -721,10 +722,10 @@ const std::vector<WifiNetwork> & WifiManager::GetResults() const
     return m_WifiScanner.GetResults();
 }
  
-void WifiManager::RegisterOnFinished(ScanFinishedCallback cb)
+void WifiManager::RegisterStateListener(ScannerStateListener cb)
 {
-   assert(nullptr == m_ScanFinishedCb);
-   m_ScanFinishedCb = cb;
+   assert(cb != nullptr);
+   m_WifiScannerStateListeners.emplace_back(cb);
 }
 
 bool WifiManager::IsShutdownPossible() const
@@ -748,7 +749,7 @@ bool WifiManager::IsStartupPossible() const
 
 bool WifiManager::IsUpdateConfigPossible() const
 {
-   return  (GetState() <= WifiExtenderState::CONNECTING) &&
+   return  (GetState() >= WifiExtenderState::CONNECTING) &&
             (false == m_WifiManagerContext.m_PendingNewConfiguration &&
             false == m_StartUpInProgress &&
             false == m_ScanningActive && 

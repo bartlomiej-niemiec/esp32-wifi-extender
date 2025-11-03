@@ -9,6 +9,16 @@
 namespace WifiExtender
 {
 
+class EventListener
+{
+    public:
+
+        virtual ~EventListener() = default;
+
+        virtual void Callback(WifiExtenderState event) = 0;
+
+};
+
 class WifiExtenderIf{
 
 public:

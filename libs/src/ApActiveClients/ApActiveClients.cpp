@@ -3,7 +3,7 @@
 
 #define DEBUG_PRINTS
 
-#ifdef ESP_PLATFORM
+#ifdef DEBUG_PRINTS
 #include "esp_log.h"
 
 #endif
@@ -52,11 +52,9 @@ std::string ApActiveClients::macToString(const uint64_t macAddrUint64)
 
 void ApActiveClients::printActiveClients()
 {
-    for (const uint64_t & client : m_ActiveClientsSet)
+    for (const auto & client : m_ActiveClientsSet)
     {   
-        #ifdef ESP_PLATFORM
         ESP_LOGI(ESP_LOG_TAG.data(), "Wifi AP Client: %s", macToString(client).c_str());
-        #endif 
     }
 }
 

@@ -8,12 +8,23 @@
 namespace WifiExtender
 {
 
-WifiExtenderIf & WifiExtenderFactory::GetWifiExtender()
+WifiExtenderFactory::WifiExtenderFactory()
 {
-    static WifiExtenderIf * pWifiExtenderIf = nullptr;
+}
+
+const WifiExtenderFactory & WifiExtenderFactory::GetInstance()
+{
+    static const WifiExtenderFactory factory;
+    return factory;
+}
+
+WifiExtenderIf & WifiExtenderFactory::GetWifiExtender() const
+{
+    static WifiExtenderImpl * pWifiExtenderIf = nullptr;
     if (pWifiExtenderIf == nullptr)
     {
         pWifiExtenderIf = new (std::nothrow) WifiExtenderImpl();
+        pWifiExtenderIf->Init();
     }
     assert(pWifiExtenderIf != nullptr);
 

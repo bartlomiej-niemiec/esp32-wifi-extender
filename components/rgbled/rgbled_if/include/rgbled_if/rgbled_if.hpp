@@ -1,5 +1,4 @@
-#ifndef RGBLEDIF_RGBLEDIF
-#define RGBLEDIF_RGBLEDIF
+#pragma once
 
 #include <stdint.h>
 #include <array>
@@ -21,5 +20,3 @@ class RgbLedIf {
 };
 
 }
-
-#endif

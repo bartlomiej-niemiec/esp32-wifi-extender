@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIMANAGER_HPP
-#define HW_WIFIEXTENDER_WIFIMANAGER_HPP
+#pragma once
 
 #include "esp_netif.h"
 #include "esp_wifi.h"
@@ -283,6 +282,3 @@ class WifiManager:
 
 
 }
-
-
-#endif

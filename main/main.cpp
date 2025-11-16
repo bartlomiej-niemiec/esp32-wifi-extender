@@ -4,11 +4,12 @@
 #include "wifi_extender_if/wifi_extender_factory.hpp"
 #include "wifi_extender_if/wifi_extender_if.hpp"
 #include "wifi_extender_if/wifi_extender_scanner_types.hpp"
-#include "nvs/nvs.hpp"
 
 #include "rgbled_if/rgbled_if.hpp"
 #include "rgbled_if/rgbled_factory.hpp"
 #include "rgbled_if/rgbled_utils.hpp"
+
+#include "data_storer_if/data_storer.hpp"
 
 #include "esp_log.h"
 
@@ -29,9 +30,10 @@ class LogEventListener:
 
 extern "C" void app_main(void)
 {
-    using namespace Hw::Nvs;
     using namespace WifiExtender;
     
+    DataStorage::DataStorer::Init();
+
     const AccessPointConfig apConfig(
         static_cast<std::string>(DEFAULT_AP_SSID),
         static_cast<std::string>(DEFAULT_AP_PASSWORD)
@@ -43,8 +45,7 @@ extern "C" void app_main(void)
     );
 
     WifiExtenderConfig config(apConfig, staConfig);
-    Nvs::Init();
-    WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetWifiExtender();
+    WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetInstance().GetWifiExtender();
     WifiExtenderScannerIf * pScanner = rWifiExtender.GetScanner();
     pScanner->RegisterStateListener([pScanner](ScannerState state){
         if (state == ScannerState::Done)

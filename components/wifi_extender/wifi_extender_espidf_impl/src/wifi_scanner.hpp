@@ -1,5 +1,4 @@
-#ifndef WIFIEXTENDER_WIFISCANNER_HPP
-#define WIFIEXTENDER_WIFISCANNER_HPP
+#pragma once
 
 #include "wifi_extender_if/wifi_extender_scanner_types.hpp"
 #include "esp_wifi.h"
@@ -42,6 +41,3 @@ class WifiScanner
 };
 
 }
-
-
-#endif

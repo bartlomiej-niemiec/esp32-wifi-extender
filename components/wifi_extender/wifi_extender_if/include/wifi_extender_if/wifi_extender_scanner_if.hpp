@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIEXTENDERSCANNER_HPP
-#define HW_WIFIEXTENDER_WIFIEXTENDERSCANNER_HPP
+#pragma once
 
 #include <stdint.h>
 #include <string>
@@ -31,5 +30,3 @@ public:
 };
  
 }
-
-#endif

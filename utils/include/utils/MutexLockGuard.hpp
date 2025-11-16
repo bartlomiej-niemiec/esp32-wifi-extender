@@ -1,5 +1,4 @@
-#ifndef UTILS_MUTEX_LOCK_GUARD_HPP
-#define UTILS_MUTEX_LOCK_GUARD_HPP
+#pragma once
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -17,6 +16,3 @@ class MutexLockGuard
         SemaphoreHandle_t m_mutex;
         bool m_locked;
 };
-
-
-#endif

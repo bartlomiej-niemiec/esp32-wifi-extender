@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIEXTENDERFACTORY_HPP
-#define HW_WIFIEXTENDER_WIFIEXTENDERFACTORY_HPP
+#pragma once
 
 #include "wifi_extender_if.hpp"
 
@@ -10,10 +9,14 @@ class WifiExtenderFactory{
 
 public:
 
-    static WifiExtenderIf & GetWifiExtender();
+    static const WifiExtenderFactory & GetInstance();
+
+    WifiExtenderIf & GetWifiExtender() const;
+
+private:
+
+    WifiExtenderFactory();
 
 };
 
 }
-
-#endif

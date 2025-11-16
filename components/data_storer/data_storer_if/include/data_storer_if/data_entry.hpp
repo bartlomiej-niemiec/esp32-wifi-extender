@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data_raw_storer_if.hpp"
-#include <assert.h>
+#include <cassert>
 #include <memory>
 
 namespace DataStorage
@@ -16,7 +16,7 @@ class DataEntry
         using ReadStatus = DataRawStorerIf::ReadStatus;
 
         DataEntry(std::shared_ptr<DataRawStorerIf> pRawStorer, std::string_view key):
-            m_pRawStorer(pRawStorer),
+            m_pRawStorer(std::move(pRawStorer)),
             m_key(key)
         {
             assert(m_pRawStorer != nullptr);

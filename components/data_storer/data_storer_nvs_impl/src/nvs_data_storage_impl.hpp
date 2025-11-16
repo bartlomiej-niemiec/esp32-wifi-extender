@@ -28,6 +28,8 @@ class NvsDataStorer:
 
         static constexpr std::string_view LOGGER_TAG = "config_storer";
 
+        static constexpr std::string_view PARTITION_NAME = "cfg_app"; 
+
         SemaphoreHandle_t m_Semaphore;
 };
 

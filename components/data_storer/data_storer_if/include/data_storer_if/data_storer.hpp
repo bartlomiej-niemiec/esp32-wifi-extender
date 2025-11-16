@@ -4,7 +4,7 @@
 
 #include "data_entry.hpp"
 #include <string_view>
-#include <assert.h>
+#include <cassert>
 #include <memory>
 
 namespace DataStorage

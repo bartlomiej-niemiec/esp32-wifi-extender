@@ -44,6 +44,31 @@ extern "C" void app_main(void)
         static_cast<std::string>(DEFAULT_STA_PASSWORD)
     );
 
+    DataStorage::DataStorer & dataStorer = DataStorage::DataStorer::GetInstance();
+    std::string_view ap_conifg_key = "apconfig";
+    DataStorage::DataEntry<int> apConfigEntry = dataStorer.GetDataEntry<int>(ap_conifg_key);
+
+    auto printApConfig = [](int x){
+        ESP_LOGI("NvsApConfig", "x: %i", x);
+    };
+
+    int nvsApConfig{};
+    apConfigEntry.Remove();
+    DataStorage::DataRawStorerIf::ReadStatus status = apConfigEntry.GetData(nvsApConfig);
+    if (status == DataStorage::DataRawStorerIf::ReadStatus::NOT_FOUND)
+    {
+        ESP_LOGI("NvsApConfig", "NO DATA FOUND");
+        int a = 10;
+        apConfigEntry.SetData(a);
+        apConfigEntry.GetData(nvsApConfig);
+    }
+    else if (status == DataStorage::DataRawStorerIf::ReadStatus::NOK)
+    {
+        ESP_LOGI("NvsApConfig", "NOK");
+    }
+
+    printApConfig(nvsApConfig);
+
     WifiExtenderConfig config(apConfig, staConfig);
     WifiExtenderIf & rWifiExtender = WifiExtenderFactory::GetInstance().GetWifiExtender();
     WifiExtenderScannerIf * pScanner = rWifiExtender.GetScanner();

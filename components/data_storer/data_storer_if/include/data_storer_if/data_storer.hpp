@@ -30,6 +30,11 @@ class DataStorer
             return DataEntry<T>(m_pDataRawStorerIf, key);
         }
 
+        bool RemoveDataForKey(std::string_view key)
+        {
+            return m_pDataRawStorerIf->Remove(key);
+        }
+
     private:
 
         DataStorer() = default;

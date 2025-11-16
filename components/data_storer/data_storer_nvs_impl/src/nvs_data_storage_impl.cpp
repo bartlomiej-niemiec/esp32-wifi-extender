@@ -34,7 +34,7 @@ bool NvsDataStorer::Write(const std::string_view key, const void * pArg, std::si
 
     esp_err_t err = nvs_open_from_partition(PARTITION_NAME.data(), NVS_NAMESPACE.data(), NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK) {
-        ESP_LOGE(LOGGER_TAG.data(), "Error (%s) opening NVS handle!", esp_err_to_name(err));
+        ESP_LOGI(LOGGER_TAG.data(), "Error while opening partition %s", PARTITION_NAME.data());
         return false;
     }
 
@@ -61,8 +61,11 @@ DataRawStorerIf::ReadStatus NvsDataStorer::Read(const std::string_view key, void
     nvs_handle_t nvs_handle{};
 
     esp_err_t err = nvs_open_from_partition(PARTITION_NAME.data(), NVS_NAMESPACE.data(), NVS_READONLY, &nvs_handle);
-    if (err != ESP_OK) return ReadStatus::NOK;
-
+    if (err == ESP_ERR_NVS_NOT_FOUND ) return ReadStatus::NOT_FOUND;
+    if (err != ESP_OK){
+        ESP_LOGI(LOGGER_TAG.data(), "Error while opening partition %s", PARTITION_NAME.data());
+        return ReadStatus::NOK;
+    }
     ESP_LOGI(LOGGER_TAG.data(), "Reading data blob:");
     err = nvs_get_blob(nvs_handle, key.data(), pArg, &size);
 
@@ -70,7 +73,10 @@ DataRawStorerIf::ReadStatus NvsDataStorer::Read(const std::string_view key, void
 
     if (err == ESP_OK) return ReadStatus::OK;
     else if(err == ESP_ERR_NVS_NOT_FOUND ) return ReadStatus::NOT_FOUND;
-    
+    else
+    {
+        ESP_LOGI(LOGGER_TAG.data(), "error: %s", esp_err_to_name(err));
+    }
     return ReadStatus::NOK;
 }
 
@@ -80,8 +86,10 @@ bool NvsDataStorer::Remove(const std::string_view key)
     nvs_handle_t nvs_handle{};
 
     esp_err_t err = nvs_open_from_partition(PARTITION_NAME.data(), NVS_NAMESPACE.data(), NVS_READWRITE, &nvs_handle);
-    if (err != ESP_OK) return false;
-
+    if (err != ESP_OK){
+        ESP_LOGI(LOGGER_TAG.data(), "Error while opening partition %s", PARTITION_NAME.data());
+        return false;
+    }
     err = nvs_erase_key(nvs_handle, key.data());
 
     nvs_commit(nvs_handle);

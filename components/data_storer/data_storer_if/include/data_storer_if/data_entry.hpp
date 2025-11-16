@@ -24,18 +24,21 @@ class DataEntry
 
         ReadStatus GetData(T & t) const
         {
-            size_t size = 0;
-            ReadStatus status = m_pRawStorer->Read(m_key, &t, size);
-            if (status == ReadStatus::OK && size == sizeof(T))
-            {
-                return ReadStatus::OK;
-            }
-            
-            return status;
+            static_assert(std::is_trivially_copyable_v<T>,
+            "T must be trivially copyable (no std::string, std::vector, etc.)");
+
+            std::size_t size = sizeof(T);
+            auto status = m_pRawStorer->Read(m_key, &t, size);
+
+            if (status != ReadStatus::OK) return status;
+            return (size == sizeof(T)) ? ReadStatus::OK : ReadStatus::NOK;
         }
 
         bool SetData(const T & t)
         {
+            static_assert(std::is_trivially_copyable_v<T>,
+            "T must be trivially copyable");
+
             return m_pRawStorer->Write(m_key, &t, sizeof(T));
         }
 

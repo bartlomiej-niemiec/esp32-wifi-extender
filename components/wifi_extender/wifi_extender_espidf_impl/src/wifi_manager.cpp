@@ -370,6 +370,7 @@ void WifiManager::printSnapshot(const WifiManager::Snapshot& s)
     ESP_LOGI("WifiExtender", "updateConfig=%s", s.updateConfig ? "True" : "False");
     ESP_LOGI("WifiExtender", "startUpInProgress=%s", s.startUpInProgress ? "True" : "False");
     ESP_LOGI("WifiExtender", "staCfgValid=%s", s.staCfgValid ? "True" : "False");
+    ESP_LOGI("WifiExtender", "reconnectCounterVal=%i", s.reconnectCounterVal);
 }
 
 WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const MessageQueue::Message& msg) const

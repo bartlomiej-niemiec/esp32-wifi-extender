@@ -1,5 +1,4 @@
-#ifndef LIBS_APACTIVECLIENTS_APACTIVECLIENTS_HPP
-#define LIBS_APACTIVECLIENTS_APACTIVECLIENTS_HPP
+#pragma once
 
 #include <stdint.h>
 #include <string>
@@ -36,5 +35,3 @@ class ApActiveClients
 };
 
 }
-
-#endif

@@ -42,13 +42,10 @@ bool WifiAp::SetConfig(const AccessPointConfig &ap_config)
 {
     const uint8_t ssid_len = ap_config.ssid.length();
 
-    wifi_config_t ap_cfg = {
-        .ap = {
-            .ssid_len = ssid_len,
-            .authmode = WIFI_AUTH_WPA_WPA2_PSK,
-            .max_connection = 4,
-        },
-    };
+    wifi_config_t ap_cfg = {};
+    ap_cfg.ap.ssid_len = ssid_len;
+    ap_cfg.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
+    ap_cfg.ap.max_connection = 4;
 
     memcpy(ap_cfg.ap.password, ap_config.password.data(), ap_config.password.length());
     memcpy(ap_cfg.ap.ssid, ap_config.ssid.data(), ap_config.ssid.length());

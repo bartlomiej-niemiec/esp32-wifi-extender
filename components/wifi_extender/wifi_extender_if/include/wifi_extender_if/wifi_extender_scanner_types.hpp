@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIEXTENDERSCANNER_TYPES_HPP
-#define HW_WIFIEXTENDER_WIFIEXTENDERSCANNER_TYPES_HPP
+#pragma once
 
 #include <stdint.h>
 #include <string>
@@ -91,5 +90,3 @@ struct ScanOptions {
 };
  
 }
-
-#endif

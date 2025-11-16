@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFISTA_HPP
-#define HW_WIFIEXTENDER_WIFISTA_HPP
+#pragma once
 
 #include "wifi_extender_if/wifi_extender_config.hpp"
 #include "esp_netif.h"
@@ -49,5 +48,3 @@ class WifiSta{
 };
 
 }
-
-#endif

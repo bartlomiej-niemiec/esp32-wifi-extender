@@ -13,4 +13,5 @@ idf_component_register(
                             "utils"
                             esp_netif
                             esp_timer
+                            nvs_flash
 )

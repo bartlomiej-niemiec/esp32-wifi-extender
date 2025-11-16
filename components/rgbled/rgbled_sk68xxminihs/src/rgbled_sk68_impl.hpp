@@ -1,5 +1,4 @@
-#ifndef SK68XXMINIHS_RGBLEDIF_RGBLEDIF
-#define SK68XXMINIHS_RGBLEDIF_RGBLEDIF
+#pragma once
 
 #include "rgbled_if/rgbled_if.hpp"
 #include "esp_timer.h"
@@ -48,6 +47,3 @@ class Sk68xxminiHsImpl:
 };
 
 }
-
-
-#endif

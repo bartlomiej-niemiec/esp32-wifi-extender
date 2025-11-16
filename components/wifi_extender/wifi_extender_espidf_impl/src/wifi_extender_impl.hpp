@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIEXTENDERIMPL_HPP
-#define HW_WIFIEXTENDER_WIFIEXTENDERIMPL_HPP
+#pragma once
 
 #include "wifi_extender_if/wifi_extender_if.hpp"
 #include "wifi_extender_if/wifi_extender_config.hpp"
@@ -16,6 +15,10 @@ class WifiExtenderImpl:
 public:
 
     WifiExtenderImpl();
+
+    ~WifiExtenderImpl();
+
+    bool Init();
 
     bool Startup(const WifiExtenderConfig & config);
 
@@ -43,6 +46,3 @@ private:
 
 
 }
-
-
-#endif

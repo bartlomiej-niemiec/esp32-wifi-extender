@@ -1,5 +1,6 @@
 #include "wifi_extender_impl.hpp"
 #include "utils/MutexLockGuard.hpp"
+#include "nvs_flash.h"
 
 namespace WifiExtender
 {
@@ -13,6 +14,16 @@ WifiExtenderImpl::WifiExtenderImpl():
     assert(nullptr != m_Semaphore);
 }
 
+WifiExtenderImpl::~WifiExtenderImpl()
+{
+    vSemaphoreDelete(m_Semaphore);
+}
+
+
+bool WifiExtenderImpl::Init()
+{
+    return true;
+}
 
 bool WifiExtenderImpl::Startup(const WifiExtenderConfig & config)
 {

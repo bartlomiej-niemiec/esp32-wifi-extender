@@ -316,17 +316,10 @@ void WifiManager::wifi_ip_event_handler(void* arg, esp_event_base_t event_base, 
 void WifiManager::RetryConnectToNetwork(void *arg)
 {
     WifiManager* pWifiManager = reinterpret_cast<WifiManager*>(arg);
-    if (pWifiManager->m_ReconnectCounterVal < RECONNECT_COUNTER_ATTEMPTS_COUNT)
-    {
-        pWifiManager->m_ReconnectCounterVal++;
-        ESP_LOGI("WifiExtender", "Timer expired attempt: %i", pWifiManager->m_ReconnectCounterVal);
-        MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
-        pWifiManager->m_MessageQueue.Add(msg);
-    }
-    else
-    {
-        ESP_LOGI("WifiExtender", "Timer expired attempt limit reached");
-    }
+    pWifiManager->m_ReconnectCounterVal++;
+    ESP_LOGI("WifiExtender", "Timer expired attempt: %i", pWifiManager->m_ReconnectCounterVal);
+    MessageQueue::Message msg(MessageQueue::EventType::StaTimerReconnect, -1);
+    pWifiManager->m_MessageQueue.Add(msg);
 }
 
 void WifiManager::StartStaBackoffTimer()
@@ -361,7 +354,8 @@ WifiManager::Snapshot WifiManager::makeSnapshot() const
         .scanningActive = m_ScanningActive,
         .updateConfig = m_WifiManagerContext.m_PendingNewConfiguration,
         .startUpInProgress = m_StartUpInProgress,
-        .staCfgValid = m_WifiManagerContext.m_StaConfigurationValid
+        .staCfgValid = m_WifiManagerContext.m_StaConfigurationValid,
+        .reconnectCounterVal = m_ReconnectCounterVal
     };
 }
 
@@ -376,6 +370,7 @@ void WifiManager::printSnapshot(const WifiManager::Snapshot& s)
     ESP_LOGI("WifiExtender", "updateConfig=%s", s.updateConfig ? "True" : "False");
     ESP_LOGI("WifiExtender", "startUpInProgress=%s", s.startUpInProgress ? "True" : "False");
     ESP_LOGI("WifiExtender", "staCfgValid=%s", s.staCfgValid ? "True" : "False");
+    ESP_LOGI("WifiExtender", "reconnectCounterVal=%i", s.reconnectCounterVal);
 }
 
 WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const MessageQueue::Message& msg) const
@@ -514,15 +509,21 @@ WifiManager::Decision WifiManager::reduce(const WifiManager::Snapshot& s, const 
         case MessageQueue::EventType::StaTimerReconnect:
         {
             if (!s.updateConfig && !s.scanningActive) {
-                push(d, Effect::StaConnect);
-                push(d, Effect::StartStaBackoffTimer);
-                if (s.mgrState != WifiExtenderState::STA_CANNOT_CONNECT)
+                if (s.reconnectCounterVal < RECONNECT_COUNTER_ATTEMPTS_COUNT)
                 {
-                    d.next = WifiExtenderState::STA_CANNOT_CONNECT;
-                    d.newState = true;
-                    push(d, Effect::NotifyListener);
+                    push(d, Effect::StaConnect);
+                    push(d, Effect::StartStaBackoffTimer);
+                    ESP_LOGI("WifiManager", "Attempting to connect to STA");
                 }
-                ESP_LOGI("WifiManager", "Attempting to connect to STA");
+                else if (s.reconnectCounterVal == RECONNECT_COUNTER_ATTEMPTS_COUNT)
+                {
+                    if (s.mgrState != WifiExtenderState::STA_CANNOT_CONNECT)
+                    {
+                        d.next = WifiExtenderState::STA_CANNOT_CONNECT;
+                        d.newState = true;
+                        push(d, Effect::NotifyListener);
+                    }
+                }
             }
         }
         break;
@@ -764,6 +765,7 @@ bool WifiManager::IsScanningPossible()
             false == m_ShutdownInProgress &&
             false == m_ScanningActive) &&
         (state == WifiExtenderState::STA_CANNOT_CONNECT ||
+        state == WifiExtenderState::CONNECTING ||
         state == WifiExtenderState::RUNNING);
 }
 

@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIMAP_HPP
-#define HW_WIFIEXTENDER_WIFIMAP_HPP
+#pragma once
 
 #include "wifi_extender_if/wifi_extender_config.hpp"
 #include "esp_netif_types.h"
@@ -50,5 +49,3 @@ class WifiAp{
 
 
 }
-
-#endif

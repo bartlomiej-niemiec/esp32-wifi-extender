@@ -1,5 +1,4 @@
-#ifndef HW_WIFIEXTENDER_WIFIMANAGERCONTEXT_HPP
-#define HW_WIFIEXTENDER_WIFIMANAGERCONTEXT_HPP
+#pragma once
 
 #include "wifi_ap.hpp"
 #include "wifi_sta.hpp"
@@ -56,5 +55,3 @@ struct WifiManagerContext
 };
 
 }
-
-#endif

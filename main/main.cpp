@@ -35,37 +35,32 @@ extern "C" void app_main(void)
     DataStorage::DataStorer::Init();
 
     const AccessPointConfig apConfig(
-        static_cast<std::string>(DEFAULT_AP_SSID),
-        static_cast<std::string>(DEFAULT_AP_PASSWORD)
+        DEFAULT_AP_SSID,
+        DEFAULT_AP_PASSWORD
     );
 
     const StaConfig staConfig(
-        static_cast<std::string>(DEFAULT_STA_SSID),
-        static_cast<std::string>(DEFAULT_STA_PASSWORD)
+        DEFAULT_STA_SSID,
+        DEFAULT_STA_PASSWORD
     );
+
+    auto printApConfig = [](AccessPointConfig ap){
+        ESP_LOGI("NvsApConfig", "ssid: %s", ap.ssid.data());
+        ESP_LOGI("NvsApConfig", "password: %s", ap.password.data());
+    };
 
     DataStorage::DataStorer & dataStorer = DataStorage::DataStorer::GetInstance();
     std::string_view ap_conifg_key = "apconfig";
-    DataStorage::DataEntry<int> apConfigEntry = dataStorer.GetDataEntry<int>(ap_conifg_key);
-
-    auto printApConfig = [](int x){
-        ESP_LOGI("NvsApConfig", "x: %i", x);
-    };
-
-    int nvsApConfig{};
-    apConfigEntry.Remove();
+    AccessPointConfig nvsApConfig{};
+    DataStorage::DataEntry<AccessPointConfig> apConfigEntry = dataStorer.GetDataEntry<AccessPointConfig>(ap_conifg_key);
     DataStorage::DataRawStorerIf::ReadStatus status = apConfigEntry.GetData(nvsApConfig);
-    if (status == DataStorage::DataRawStorerIf::ReadStatus::NOT_FOUND)
+    if (status == DataStorage::DataRawStorerIf::ReadStatus::NOK)
     {
-        ESP_LOGI("NvsApConfig", "NO DATA FOUND");
-        int a = 10;
-        apConfigEntry.SetData(a);
-        apConfigEntry.GetData(nvsApConfig);
+        apConfigEntry.Remove();
     }
-    else if (status == DataStorage::DataRawStorerIf::ReadStatus::NOK)
-    {
-        ESP_LOGI("NvsApConfig", "NOK");
-    }
+
+    apConfigEntry.SetData(apConfig);
+    apConfigEntry.GetData(nvsApConfig);
 
     printApConfig(nvsApConfig);
 

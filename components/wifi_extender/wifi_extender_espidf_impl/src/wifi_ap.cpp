@@ -2,6 +2,7 @@
 #include "assert.h"
 #include <utility>
 #include <string.h>
+#include <cstring>
 
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
@@ -40,15 +41,28 @@ bool WifiAp::Init()
 
 bool WifiAp::SetConfig(const AccessPointConfig &ap_config)
 {
-    const uint8_t ssid_len = ap_config.ssid.length();
+    const uint8_t ssid_len = strnlen(ap_config.ssid.data(), AccessPointConfig::MAX_SSID_SIZE);
 
     wifi_config_t ap_cfg = {};
     ap_cfg.ap.ssid_len = ssid_len;
     ap_cfg.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
     ap_cfg.ap.max_connection = 4;
 
-    memcpy(ap_cfg.ap.password, ap_config.password.data(), ap_config.password.length());
-    memcpy(ap_cfg.ap.ssid, ap_config.ssid.data(), ap_config.ssid.length());
+   size_t ssid_size = strnlen(ap_config.ssid.data(), StaConfig::MAX_SSID_SIZE);
+    if (ssid_size < StaConfig::MAX_SSID_SIZE) {
+        memcpy(ap_cfg.ap.ssid, ap_config.ssid.data(), ssid_size + 1);
+    } else {
+        memcpy(ap_cfg.ap.ssid, ap_config.ssid.data(), StaConfig::MAX_SSID_SIZE);
+        ap_cfg.ap.ssid[StaConfig::MAX_SSID_SIZE - 1] = '\0';
+    }
+
+    size_t password_size = strnlen(ap_config.password.data(), StaConfig::MAX_PASSWORD_SIZE);
+    if (ssid_size < StaConfig::MAX_PASSWORD_SIZE) {
+        memcpy(ap_cfg.ap.password, ap_config.password.data(), password_size + 1);
+    } else {
+        memcpy(ap_cfg.ap.ssid, ap_config.password.data(), StaConfig::MAX_PASSWORD_SIZE);
+        ap_cfg.ap.password[StaConfig::MAX_SSID_SIZE - 1] = '\0';
+    }
 
     esp_err_t result = esp_wifi_set_config(WIFI_IF_AP, &ap_cfg);
     assert(ESP_OK == result);

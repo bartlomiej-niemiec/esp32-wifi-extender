@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string>
 #include <string_view>
+#include <array>
 
 namespace WifiExtender
 {
@@ -20,41 +21,45 @@ enum class WifiExtenderState : uint8_t {
 struct AccessPointConfig {
     AccessPointConfig();
     AccessPointConfig(std::string ssid, std::string password, int max_clients = 1);
+    AccessPointConfig(std::string_view ssid, std::string_view password, int max_clients = 1);
     AccessPointConfig(const AccessPointConfig & config) = default;
     AccessPointConfig(AccessPointConfig & config) = default;
     AccessPointConfig & operator=(AccessPointConfig & apconfig) = default;
     AccessPointConfig & operator=(const AccessPointConfig & apconfig) = default;
 
-    bool operator==(AccessPointConfig const& apconfig) const;
+    bool operator==(AccessPointConfig const& apconfig) const = default;
 
-    bool operator!=(AccessPointConfig const& apconfig) const;
+    bool operator!=(AccessPointConfig const& apconfig) const = default;
 
     bool IsValid() const;
 
-    std::string ssid;
-    std::string password;
+    static constexpr uint8_t MAX_SSID_SIZE = 32;
+    static constexpr uint8_t MAX_PASSWORD_SIZE = 64;
+    std::array<char, MAX_SSID_SIZE> ssid;
+    std::array<char, MAX_PASSWORD_SIZE> password;
     int max_clients;
 
 };
 
 struct StaConfig {
-
-    std::string ssid;
-    std::string password;
-
     StaConfig();
     StaConfig(std::string ssid, std::string password);
+    StaConfig(std::string_view ssid, std::string_view password);
     StaConfig(StaConfig & config) = default;
     StaConfig(const StaConfig & config) = default;
     StaConfig & operator=(StaConfig & staconfig) = default;
     StaConfig & operator=(const StaConfig & staconfig) = default;
 
-    bool operator==(StaConfig const& staconfig) const;
+    bool operator==(StaConfig const& staconfig) const = default;
 
-    bool operator!=(StaConfig const& staconfig) const;
+    bool operator!=(StaConfig const& staconfig) const = default;
 
     bool IsValid() const;
 
+    static constexpr uint8_t MAX_SSID_SIZE = 32;
+    static constexpr uint8_t MAX_PASSWORD_SIZE = 64;
+    std::array<char, MAX_SSID_SIZE> ssid;
+    std::array<char, MAX_PASSWORD_SIZE> password;
 };
 
 struct WifiExtenderConfig {

@@ -38,7 +38,6 @@ bool NvsDataStorer::Write(const std::string_view key, const void * pArg, std::si
         return false;
     }
 
-    ESP_LOGI(LOGGER_TAG.data(), "Saving data blob...");
     err = nvs_set_blob(nvs_handle, key.data(), pArg, size);
     if (err != ESP_OK) {
         ESP_LOGE(LOGGER_TAG.data(), "Failed to write data blob!");
@@ -66,7 +65,6 @@ DataRawStorerIf::ReadStatus NvsDataStorer::Read(const std::string_view key, void
         ESP_LOGI(LOGGER_TAG.data(), "Error while opening partition %s", PARTITION_NAME.data());
         return ReadStatus::NOK;
     }
-    ESP_LOGI(LOGGER_TAG.data(), "Reading data blob:");
     err = nvs_get_blob(nvs_handle, key.data(), pArg, &size);
 
     nvs_close(nvs_handle);

@@ -1,11 +1,45 @@
 #include "wifi_extender_if/wifi_extender_config.hpp"
+#include <algorithm>
+#include <cstring>
 
 namespace WifiExtender
 {
 
-AccessPointConfig::AccessPointConfig(std::string ssid, std::string password, int max_clients):
-    ssid(std::move(ssid)), password(std::move(password)), max_clients(max_clients)
-{}
+AccessPointConfig::AccessPointConfig(std::string str_ssid, std::string str_password, int max_clients):
+    ssid{},
+    password{},
+    max_clients(max_clients)
+{   
+    const std::size_t max_ssid_len = MAX_SSID_SIZE - 1;
+    const std::size_t n_ssid = std::min(str_ssid.size(), max_ssid_len);
+
+    std::copy_n(str_ssid.begin(), n_ssid, ssid.begin());
+    ssid[n_ssid] = '\0';  
+
+    const std::size_t max_pass_len = MAX_PASSWORD_SIZE - 1;
+    const std::size_t n_pass = std::min(str_password.size(), max_pass_len);
+
+    std::copy_n(str_password.begin(), n_pass, password.begin());
+    password[n_pass] = '\0'; 
+}
+
+AccessPointConfig::AccessPointConfig(std::string_view str_ssid, std::string_view str_password, int max_clients):
+    ssid{},
+    password{},
+    max_clients(max_clients)
+{   
+    const std::size_t max_ssid_len = MAX_SSID_SIZE - 1;
+    const std::size_t n_ssid = std::min(str_ssid.size(), max_ssid_len);
+
+    std::copy_n(str_ssid.begin(), n_ssid, ssid.begin());
+    ssid[n_ssid] = '\0';  
+
+    const std::size_t max_pass_len = MAX_PASSWORD_SIZE - 1;
+    const std::size_t n_pass = std::min(str_password.size(), max_pass_len);
+
+    std::copy_n(str_password.begin(), n_pass, password.begin());
+    password[n_pass] = '\0'; 
+}
 
     
 AccessPointConfig::AccessPointConfig():
@@ -14,42 +48,52 @@ AccessPointConfig::AccessPointConfig():
     max_clients()
 {}
 
-bool AccessPointConfig::operator==(AccessPointConfig const& apconfig) const
-{
-    return ((apconfig.ssid == this->ssid) && (apconfig.password == this->password));
-};
-
-bool AccessPointConfig::operator!=(AccessPointConfig const& apconfig) const
-{   
-    return !this->operator==(apconfig);
-};
-
 bool AccessPointConfig::IsValid() const {
-    return !ssid.empty() && !password.empty();
+    return ssid[0] != '\0' && password[0] != '\0';
 }
 
 
-StaConfig::StaConfig(std::string ssid, std::string password):
-    ssid(std::move(ssid)), password(std::move(password))
-{}
+StaConfig::StaConfig(std::string str_ssid, std::string str_password):
+    ssid{},
+    password{}
+{
+    const std::size_t max_ssid_len = MAX_SSID_SIZE - 1;
+    const std::size_t n_ssid = std::min(str_ssid.size(), max_ssid_len);
+
+    std::copy_n(str_ssid.begin(), n_ssid, ssid.begin());
+    ssid[n_ssid] = '\0';  
+
+    const std::size_t max_pass_len = MAX_PASSWORD_SIZE - 1;
+    const std::size_t n_pass = std::min(str_password.size(), max_pass_len);
+
+    std::copy_n(str_password.begin(), n_pass, password.begin());
+    password[n_pass] = '\0'; 
+}
+
+StaConfig::StaConfig(std::string_view str_ssid, std::string_view str_password):
+    ssid{},
+    password{}
+{
+    const std::size_t max_ssid_len = MAX_SSID_SIZE - 1;
+    const std::size_t n_ssid = std::min(str_ssid.size(), max_ssid_len);
+
+    std::copy_n(str_ssid.begin(), n_ssid, ssid.begin());
+    ssid[n_ssid] = '\0';  
+
+    const std::size_t max_pass_len = MAX_PASSWORD_SIZE - 1;
+    const std::size_t n_pass = std::min(str_password.size(), max_pass_len);
+
+    std::copy_n(str_password.begin(), n_pass, password.begin());
+    password[n_pass] = '\0'; 
+}
 
 StaConfig::StaConfig():
     ssid(),
     password()
 {}
 
-bool StaConfig::operator==(StaConfig const& staconfig) const
-{
-    return ((staconfig.ssid == this->ssid) && (staconfig.password == this->password));
-};
-
-bool StaConfig::operator!=(StaConfig const& staconfig) const
-{   
-    return !this->operator==(staconfig);
-};
-
 bool StaConfig::IsValid() const {
-    return !ssid.empty() && !password.empty();
+    return ssid[0] != '\0' && password[0] != '\0';
 }
 
 

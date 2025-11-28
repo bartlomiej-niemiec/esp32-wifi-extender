@@ -24,11 +24,11 @@ bool WifiManager::Init()
         return false;
     }
 
-    m_WifiManagerContext.m_WifiSta.Init();
-    m_WifiManagerContext.m_WifiSta.SetState(WifiSta::State::INITIALIZED);
-
     m_WifiManagerContext.m_WifiAp.Init();
     m_WifiManagerContext.m_WifiAp.SetState(WifiAp::State::INITIALIZED);
+
+    m_WifiManagerContext.m_WifiSta.Init();
+    m_WifiManagerContext.m_WifiSta.SetState(WifiSta::State::INITIALIZED);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);

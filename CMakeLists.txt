@@ -5,6 +5,7 @@ set(DataStorerImpl Nvs)
 set(EXTRA_COMPONENT_DIRS    ${CMAKE_SOURCE_DIR}/main
     ${CMAKE_SOURCE_DIR}/libs
     ${CMAKE_SOURCE_DIR}/utils
+    ${CMAKE_SOURCE_DIR}/third-party/mongoose
     ${CMAKE_SOURCE_DIR}/components/wifi_extender/wifi_extender_if
     ${CMAKE_SOURCE_DIR}/components/wifi_extender/wifi_extender_espidf_impl
     ${CMAKE_SOURCE_DIR}/components/rgbled/rgbled_if

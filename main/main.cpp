@@ -11,10 +11,47 @@
 
 #include "data_storer_if/data_storer.hpp"
 
+#include "mongoose.h"
+
 #include "esp_log.h"
 
 #include "config.hpp"
 #include <string>
+
+
+static volatile bool isMongooseRunning = false;
+static constexpr char m_pTaskName[] = "MongooseWebServer";
+static constexpr int MONGOOSE_TASK_STACK_SIZE = 4096 * 2;
+static constexpr int MONGOOSE_TASK_PRIO = 3;
+static TaskHandle_t m_MongooseTaskHandle = nullptr;
+
+static void event_handler(struct mg_connection *c, int ev, void *ev_data) {
+    if (ev == MG_EV_HTTP_MSG) {
+        struct mg_http_message *hm = (mg_http_message *) ev_data;  // Parsed HTTP request
+        ESP_LOGI("MONGOOSE", "HTTP %.*s %.*s",
+                (int)hm->method.len, hm->method.buf,
+                (int)hm->uri.len, hm->uri.buf);
+        mg_http_reply(c, 200, "", "ok, uptime: %llu\r\n", mg_millis());
+    }
+}
+
+static void run_mongoose(void *pArg) {
+    ESP_LOGI("MONGOOSE", "run_mongoose started");
+    struct mg_mgr mgr;        // Mongoose event manager
+    mg_mgr_init(&mgr);        // Initialise event manager
+    struct mg_connection *lc = mg_http_listen(&mgr, "http://0.0.0.0:80", event_handler, NULL);
+
+        if (lc == nullptr) {
+        ESP_LOGE("MONGOOSE", "mg_http_listen failed");
+        mg_mgr_free(&mgr);
+        vTaskDelete(NULL);
+    }
+    uint32_t counter = 0;
+    mg_log_set(MG_LL_DEBUG);  // Set log level to debug
+    for (;;) {                // Infinite event loop
+        mg_mgr_poll(&mgr, 1000);   // Process network events
+    }
+}
 
 class LogEventListener:
     public WifiExtender::EventListener
@@ -24,6 +61,20 @@ class LogEventListener:
         void Callback(WifiExtender::WifiExtenderState event) override
         {
             ESP_LOGI("WifiExtender", "State: %s", WifiExtender::WifiExtenderHelpers::WifiExtenderStaToString(event).data());
+            if ((event == WifiExtender::WifiExtenderState::CONNECTING ||
+                event == WifiExtender::WifiExtenderState::RUNNING) && !isMongooseRunning)
+            {
+                xTaskCreate(
+                    run_mongoose,
+                    m_pTaskName,
+                    MONGOOSE_TASK_STACK_SIZE,
+                    nullptr,
+                    MONGOOSE_TASK_PRIO,
+                    &m_MongooseTaskHandle
+                );
+                assert(nullptr != m_MongooseTaskHandle);
+                isMongooseRunning = true;
+            }
         }
 };
 
@@ -31,7 +82,7 @@ class LogEventListener:
 extern "C" void app_main(void)
 {
     using namespace WifiExtender;
-    
+
     DataStorage::DataStorer::Init();
 
     const AccessPointConfig apConfig(
